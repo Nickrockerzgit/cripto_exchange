@@ -1,57 +1,74 @@
-🚀 Project Setup Guide
+# 🚀 Node.js Backend API
 
-Follow the steps below to run this project on your local machine.
+A layered architecture backend built with **Node.js, Express, Prisma, and MySQL**.
 
-📥 1. Clone the Repository
+---
+
+## 📦 Tech Stack
+
+- ⚡ Node.js
+- 🚏 Express.js
+- 🗄 Prisma ORM
+- 🐬 MySQL
+- 🔄 Nodemon
+
+---
+
+## 📥 Getting Started
+
+Follow these steps to run the project locally.
+
+---
+
+### 1️⃣ Clone the Repository
+
+```bash
 git clone https://github.com/your-username/your-repository-name.git
 cd your-repository-name
 
-📦 2. Install Dependencies
+
+ 2️⃣ Install Dependencies
 npm install
 
+3️⃣ Setup Environment Variables
 
-This will install all required Node.js packages for the project.
-
-⚙️ 3. Configure Environment Variables
-
-Create a .env file in the root directory of the project and add your database credentials.
-
-Example .env file:
+Create a .env file in the root directory:
 
 DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/DATABASE_NAME"
 PORT=5000
 
 
-Replace the values with your actual database details:
+🔹 Replace with your actual database credentials.
 
-USER → Your MySQL username
-
-PASSWORD → Your MySQL password
-
-DATABASE_NAME → Your database name
-
-🗄 4. Setup the Database (Prisma)
-
-If the project uses Prisma, run the following command to create database tables:
-
+4️⃣ Setup Database (Prisma)
 npx prisma migrate dev
 
-▶️ 5. Start the Server (Development Mode)
 
-You can start the server using Nodemon:
+This will create the required tables in your database.
 
+5️⃣ Start the Development Server
 npx nodemon src/server.js
 
 
-Or if a script is already defined in package.json:
+Or if script exists:
 
 npm run dev
 
-
-The server will automatically restart whenever you make changes to the code.
-
 🌐 Server URL
 
-Once the server is running, you can access it at:
+Once running:
 
 http://localhost:5000
+
+
+
+
+📁 Project Structure
+src/
+├── config/
+├── controllers/
+├── services/
+├── repositories/
+├── routes/
+├── middlewares/
+└── server.js
