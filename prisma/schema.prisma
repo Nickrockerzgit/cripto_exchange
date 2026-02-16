@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
@@ -11,4 +5,222 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+}
+
+//////////////////////////////////////////////////////
+// ================= USERS ===========================
+//////////////////////////////////////////////////////
+
+model User {
+  id            String   @id @default(uuid())
+  name          String?
+  email         String?  @unique
+  phone         String?
+  password_hash String?
+  status        String? // PENDING / ACTIVE / BLOCKED
+  referral_code String?
+  created_at    DateTime @default(now())
+
+  // 🔐 Email Verification
+  is_email_verified  Boolean @default(false)
+  email_verify_token String? @unique
+
+  // 🔐 2FA
+  two_factor_enabled Boolean @default(false)
+  two_factor_secret  String?
+
+  // 🔐 Security
+  login_attempts Int       @default(0)
+  lock_until     DateTime?
+refresh_token  String? @db.Text
+
+  // Relations
+  roles            UserRole[]
+  wallets          Wallet[]
+  transactions     Transaction[]
+  deposits         Deposit[]
+  withdrawals      Withdrawal[]
+  investments      Investment[]
+  depositAddresses DepositAddress[]
+  userRanks        UserRank[]
+
+  sentTransfers     InternalTransfer[] @relation("SenderRelation")
+  receivedTransfers InternalTransfer[] @relation("ReceiverRelation")
+}
+
+//////////////////////////////////////////////////////
+// ================= ROLES ===========================
+//////////////////////////////////////////////////////
+
+model Role {
+  id        String     @id @default(uuid())
+  role_name String
+  users     UserRole[]
+}
+
+model UserRole {
+  id      String @id @default(uuid())
+  user_id String
+  role_id String
+
+  user User @relation(fields: [user_id], references: [id])
+  role Role @relation(fields: [role_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// ================= WALLET ==========================
+//////////////////////////////////////////////////////
+
+model Wallet {
+  id                 String   @id @default(uuid())
+  user_id            String
+  main_balance       Decimal  @default(0)
+  investment_balance Decimal  @default(0)
+  profit_balance     Decimal  @default(0)
+  referral_balance   Decimal  @default(0)
+  updated_at         DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model Transaction {
+  id                 String   @id @default(uuid())
+  user_id            String
+  type               String?
+  source_wallet      String?
+  destination_wallet String?
+  gross_amount       Decimal?
+  fee_amount         Decimal?
+  penalty_amount     Decimal?
+  net_amount         Decimal?
+  status             String?
+  reference_id       String?
+  description        String?
+  created_at         DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// ================= DEPOSIT / WITHDRAW =============
+//////////////////////////////////////////////////////
+
+model Deposit {
+  id              String   @id @default(uuid())
+  user_id         String
+  amount          Decimal
+  platform_fee    Decimal?
+  net_amount      Decimal?
+  blockchain_txid String?
+  deposit_address String?
+  sweep_status    String?
+  created_at      DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model Withdrawal {
+  id                 String    @id @default(uuid())
+  user_id            String
+  type               String?
+  requested_amount   Decimal
+  platform_fee       Decimal?
+  penalty_fee        Decimal?
+  net_amount         Decimal?
+  status             String?
+  ticket_raised_date DateTime?
+  processed_at       DateTime?
+  created_at         DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// ================= REFERRALS =======================
+//////////////////////////////////////////////////////
+
+model Referral {
+  id                String   @id @default(uuid())
+  referrer_id       String
+  referred_user_id  String
+  activation_status Boolean?
+  bonus_credited    Boolean?
+  created_at        DateTime @default(now())
+}
+
+model ReferralRank {
+  id                 String     @id @default(uuid())
+  rank_name          String?
+  required_referrals Int?
+  reward_amount      Decimal?
+  users              UserRank[]
+}
+
+model UserRank {
+  id          String   @id @default(uuid())
+  user_id     String
+  rank_id     String
+  assigned_at DateTime @default(now())
+
+  user User         @relation(fields: [user_id], references: [id])
+  rank ReferralRank @relation(fields: [rank_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// ================= INTERNAL TRANSFER ===============
+//////////////////////////////////////////////////////
+
+model InternalTransfer {
+  id          String   @id @default(uuid())
+  sender_id   String
+  receiver_id String
+  amount      Decimal
+  created_at  DateTime @default(now())
+
+  sender   User @relation("SenderRelation", fields: [sender_id], references: [id])
+  receiver User @relation("ReceiverRelation", fields: [receiver_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// ================= DEPOSIT ADDRESS =================
+//////////////////////////////////////////////////////
+
+model DepositAddress {
+  id         String   @id @default(uuid())
+  user_id    String
+  address    String
+  index_no   Int
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+//////////////////////////////////////////////////////
+// ================= INVESTMENT ======================
+//////////////////////////////////////////////////////
+
+model InvestmentPlan {
+  id           String   @id @default(uuid())
+  name         String
+  min_amount   Decimal
+  max_amount   Decimal?
+  min_interest Decimal
+  max_interest Decimal
+  created_at   DateTime @default(now())
+
+  investments Investment[]
+}
+
+model Investment {
+  id                    String   @id @default(uuid())
+  user_id               String
+  plan_id               String
+  amount                Decimal
+  monthly_interest_rate Decimal
+  start_date            DateTime
+  status                String?
+  created_at            DateTime @default(now())
+
+  user User           @relation(fields: [user_id], references: [id])
+  plan InvestmentPlan @relation(fields: [plan_id], references: [id])
 }
