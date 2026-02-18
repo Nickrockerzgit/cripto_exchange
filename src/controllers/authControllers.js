@@ -1,49 +1,75 @@
-const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const speakeasy = require('speakeasy');
-const qrcode = require('qrcode');
-const { generateOTP } = require('../utils/otpGenerator');
-const { emailVerificationTemplate, twoFactorSetupTemplate, twoFactorLoginTemplate } = require('../utils/emailTemplates');
-const { sendEmail } = require('../services/emailService');
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import speakeasy from 'speakeasy';
+import qrcode from 'qrcode';
+import { nanoid } from 'nanoid';
+import { generateOTP } from '../utils/otpGenerator.js';
+import {
+  emailVerificationTemplate,
+  twoFactorSetupTemplate,
+  twoFactorLoginTemplate
+} from '../utils/emailTemplates.js';
+import { sendEmail } from '../services/emailService.js';
+import {
+  handleReferralOnRegister
+} from "../controllers/refralsControllers.js"
+
 
 const prisma = new PrismaClient();
 
 async function register(req, res) {
-  const { name, email, phone, password } = req.body;
+  try {
+    const { name, email, phone, password } = req.body;
+    const referralCodeFromParam = req.query.ref;
 
-  // Check if user exists
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    return res.status(400).json({ error: 'Email already registered' });
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    const generatedReferralCode = generateReferralCode();
+    const otp = generateOTP();
+
+    // 🔹 Create User
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        phone,
+        password_hash,
+        status: "PENDING",
+        email_verify_token: otp,
+        referral_code: generatedReferralCode
+      }
+    });
+
+    // 🔹 Create Wallet
+    await prisma.wallet.create({
+      data: { user_id: user.id }
+    });
+
+    // 🔹 Handle Referral via Service
+    await handleReferralOnRegister(referralCodeFromParam, user.id);
+
+    const html = emailVerificationTemplate(otp);
+    await sendEmail(email, "Verify Your Email", html);
+
+    res.status(201).json({
+      message: "User registered. Verify email with OTP.",
+      userId: user.id,
+      referralUrl: generateReferralUrl(generatedReferralCode)
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Registration failed" });
   }
-
-  // Hash password
-  const password_hash = await bcrypt.hash(password, 10);
-
-  // Generate OTP for email verification
-  const otp = generateOTP();
-  const email_verify_token = otp; // Store as token
-
-  // Create user
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      phone,
-      password_hash,
-      status: 'PENDING',
-      email_verify_token,
-    },
-  });
-
-  // Send verification email
-  const html = emailVerificationTemplate(otp);
-  await sendEmail(email, 'Verify Your Email', html);
-
-  res.status(201).json({ message: 'User registered. Verify email with OTP.', userId: user.id });
 }
-
 async function verifyEmail(req, res) {
   const { email, otp } = req.body;
 
@@ -235,8 +261,11 @@ async function refreshToken(req, res) {
     res.status(403).json({ error: 'Invalid refresh token' });
   }
 }
+const generateReferralCode = () => {
+  return nanoid(8); // 8 character unique code
+};
 
-module.exports = {
+export  {
   register,
   verifyEmail,
   login,

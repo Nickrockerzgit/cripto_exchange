@@ -7,4 +7,4 @@ function generateOTP(length = 6) {
   return OTP;
 }
 
-module.exports = { generateOTP };
+export { generateOTP };

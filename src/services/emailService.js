@@ -1,5 +1,5 @@
 // src/services/emailService.js
-const transporter = require('../config/emailConfig');
+import transporter from '../config/emailConfig.js';
 
 async function sendEmail(to, subject, html, attachments = []) {
   const mailOptions = {
@@ -19,4 +19,4 @@ async function sendEmail(to, subject, html, attachments = []) {
   }
 }
 
-module.exports = { sendEmail };
+export  { sendEmail };

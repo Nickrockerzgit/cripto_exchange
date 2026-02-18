@@ -18,7 +18,9 @@ model User {
   phone         String?
   password_hash String?
   status        String? // PENDING / ACTIVE / BLOCKED
-  referral_code String?
+  referral_code String? @unique
+  referral_count Int     @default(0)
+  referral_rank_id String? 
   created_at    DateTime @default(now())
 
   // 🔐 Email Verification
@@ -32,8 +34,7 @@ model User {
   // 🔐 Security
   login_attempts Int       @default(0)
   lock_until     DateTime?
-refresh_token  String? @db.Text
-
+  refresh_token  String? @db.Text
   // Relations
   roles            UserRole[]
   wallets          Wallet[]
@@ -44,6 +45,10 @@ refresh_token  String? @db.Text
   depositAddresses DepositAddress[]
   userRanks        UserRank[]
 
+  referralsGiven   Referral[] @relation("ReferrerRelation")
+  referralRankHistory ReferralRankHistory[]
+  referralReceived Referral[] @relation("ReferredRelation")
+  referralRank      ReferralRank? @relation(fields: [referral_rank_id], references: [id])
   sentTransfers     InternalTransfer[] @relation("SenderRelation")
   receivedTransfers InternalTransfer[] @relation("ReceiverRelation")
 }
@@ -140,21 +145,50 @@ model Withdrawal {
 //////////////////////////////////////////////////////
 
 model Referral {
-  id                String   @id @default(uuid())
-  referrer_id       String
-  referred_user_id  String
-  activation_status Boolean?
-  bonus_credited    Boolean?
+  id               String   @id @default(uuid())
+  referrer_id      String
+  referred_user_id String   @unique
+
+  activation_status Boolean  @default(false)
+  bonus_credited    Boolean  @default(false)
   created_at        DateTime @default(now())
+
+  referrer User @relation("ReferrerRelation", fields: [referrer_id], references: [id])
+  referred User @relation("ReferredRelation", fields: [referred_user_id], references: [id])
 }
 
+
 model ReferralRank {
-  id                 String     @id @default(uuid())
-  rank_name          String?
-  required_referrals Int?
-  reward_amount      Decimal?
-  users              UserRank[]
+  id                 String @id @default(uuid())
+  rank_name          String
+  required_referrals Int
+  reward_amount      Decimal
+  referralUsers      User[]
+  rankHistory        ReferralRankHistory[]
 }
+
+model InvestmentRank {
+  id                   String @id @default(uuid())
+  rank_name            String
+  required_investment  Decimal
+  created_at           DateTime @default(now())
+  userRanks            UserRank[]
+}
+
+
+model ReferralRankHistory {
+  id          String   @id @default(uuid())
+  user_id     String
+  rank_id     String
+  reward_paid Decimal
+  assigned_at DateTime @default(now())
+
+  user User           @relation(fields: [user_id], references: [id])
+  rank ReferralRank   @relation(fields: [rank_id], references: [id])
+
+  @@unique([user_id, rank_id]) // 🔥 Prevent double reward
+}
+
 
 model UserRank {
   id          String   @id @default(uuid())
@@ -163,7 +197,7 @@ model UserRank {
   assigned_at DateTime @default(now())
 
   user User         @relation(fields: [user_id], references: [id])
-  rank ReferralRank @relation(fields: [rank_id], references: [id])
+  rank InvestmentRank  @relation(fields: [rank_id], references: [id])
 }
 
 //////////////////////////////////////////////////////

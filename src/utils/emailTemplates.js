@@ -35,7 +35,7 @@ function twoFactorLoginTemplate() {
   `;
 }
 
-module.exports = {
+export  {
   emailVerificationTemplate,
   twoFactorSetupTemplate,
   twoFactorLoginTemplate,
