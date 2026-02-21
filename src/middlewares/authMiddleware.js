@@ -1,6 +1,5 @@
 // This is a sample auth middleware; add to your folder if not exists
-const jwt = require('jsonwebtoken');
-
+import jwt from 'jsonwebtoken';
 function authMiddleware(req, res, next) {
   const token = req.header('Authorization')?.split(' ')[1];
   if (!token) {
@@ -16,4 +15,4 @@ function authMiddleware(req, res, next) {
   }
 }
 
-module.exports = authMiddleware;
+export default authMiddleware;

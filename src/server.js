@@ -1,10 +1,14 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const { PrismaClient } = require('@prisma/client');
+import dotenv from 'dotenv';
+dotenv.config();
 
-const authRoutes = require('./routes/authRoutes');
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+import { PrismaClient } from '@prisma/client';
+
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js'
+import referralRoutes from './routes/referralRoutes.js'
 // Agar aur routes banaye honge to yaha import kar dena
 // const userRoutes = require('./routes/userRoutes');
 // const walletRoutes = require('./routes/walletRoutes');
@@ -38,7 +42,8 @@ app.get('/health', (req, res) => {
 // Routes
 // ────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
-// app.use('/api/users', userRoutes);
+app.use('/api/users', userRoutes); 
+app.use('/api/referrals',referralRoutes)
 // app.use('/api/wallets', walletRoutes);
 // app.use('/api/transactions', transactionRoutes);
 // ... baaki routes yaha add karte jana
