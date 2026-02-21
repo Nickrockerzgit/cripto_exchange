@@ -9,11 +9,12 @@ const publicUserSelect = {
   phone: true,
   status: true,
   referral_count: true,
+  referral_rank_id : true,
   created_at: false,
   is_email_verified: true,
   two_factor_enabled: true,
   lock_until:false,
-  referral_code:false
+  referral_code:true
 };
 
 // 🔹 Create User

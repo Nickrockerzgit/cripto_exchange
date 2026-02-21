@@ -40,5 +40,8 @@
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
     "uuid": "^13.0.0"
-  }
+  },
+  "prisma": {
+  "seed": "node prisma/seed.js"
+}
 }

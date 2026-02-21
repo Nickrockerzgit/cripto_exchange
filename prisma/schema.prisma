@@ -59,7 +59,7 @@ model User {
 
 model Role {
   id        String     @id @default(uuid())
-  role_name String
+  role_name String     @unique
   users     UserRole[]
 }
 
@@ -78,7 +78,7 @@ model UserRole {
 
 model Wallet {
   id                 String   @id @default(uuid())
-  user_id            String
+  user_id            String   @unique
   main_balance       Decimal  @default(0)
   investment_balance Decimal  @default(0)
   profit_balance     Decimal  @default(0)
@@ -160,7 +160,7 @@ model Referral {
 
 model ReferralRank {
   id                 String @id @default(uuid())
-  rank_name          String
+  rank_name          String @unique
   required_referrals Int
   reward_amount      Decimal
   referralUsers      User[]
@@ -169,7 +169,7 @@ model ReferralRank {
 
 model InvestmentRank {
   id                   String @id @default(uuid())
-  rank_name            String
+  rank_name            String @unique
   required_investment  Decimal
   created_at           DateTime @default(now())
   userRanks            UserRank[]
@@ -235,7 +235,7 @@ model DepositAddress {
 
 model InvestmentPlan {
   id           String   @id @default(uuid())
-  name         String
+  name         String   @unique
   min_amount   Decimal
   max_amount   Decimal?
   min_interest Decimal

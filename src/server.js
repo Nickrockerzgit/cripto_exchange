@@ -8,6 +8,7 @@ import { PrismaClient } from '@prisma/client';
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js'
+import referralRoutes from './routes/referralRoutes.js'
 // Agar aur routes banaye honge to yaha import kar dena
 // const userRoutes = require('./routes/userRoutes');
 // const walletRoutes = require('./routes/walletRoutes');
@@ -42,6 +43,7 @@ app.get('/health', (req, res) => {
 // ────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes); 
+app.use('/api/referrals',referralRoutes)
 // app.use('/api/wallets', walletRoutes);
 // app.use('/api/transactions', transactionRoutes);
 // ... baaki routes yaha add karte jana

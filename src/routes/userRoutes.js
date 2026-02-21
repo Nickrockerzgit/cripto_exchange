@@ -4,7 +4,9 @@ import {
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  getWalletBalance,
+  getTransactionHistory
 } from '../controllers/userController.js';
 import { getAllUsersRefrals } from '../controllers/refralsControllers.js';
 
@@ -17,16 +19,19 @@ router.post('/', createUser);
 
 // 🔹 Get all users
 router.get('/', getAllUsers);
-router.get('/refrals', getAllUsersRefrals);
 
 
 // 🔹 Get single user
-router.get('/:id', authMiddleware, getUserById);
+router.get('/:id', getUserById);
 
 // 🔹 Update user
 router.put('/:id', authMiddleware, updateUser);
 
 // 🔹 Delete user
 router.delete('/:id', authMiddleware, deleteUser);
+
+router.get('/wallet/balance',authMiddleware,getWalletBalance)
+router.get('/transaction/history',authMiddleware,getTransactionHistory)
+
 
 export default router;
