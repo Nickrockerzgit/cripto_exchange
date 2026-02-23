@@ -1,1 +1,5 @@
-console.log("git status");
+const { generateTronAddress } = require("./tronAddressGenerator");
+
+const result = generateTronAddress(2);
+
+console.log(result);
