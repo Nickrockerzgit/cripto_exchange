@@ -127,12 +127,12 @@ model Deposit {
 model Withdrawal {
   id                 String    @id @default(uuid())
   user_id            String
-  type               String?
+  type               String?   // PROFIT / PRINCIPAL
   requested_amount   Decimal
   platform_fee       Decimal?
   penalty_fee        Decimal?
   net_amount         Decimal?
-  status             String?
+  status             String?   // PENDING / PROCESSING / COMPLETED / REJECTED
   ticket_raised_date DateTime?
   processed_at       DateTime?
   created_at         DateTime  @default(now())
@@ -250,9 +250,10 @@ model Investment {
   user_id               String
   plan_id               String
   amount                Decimal
+  remaining_principal   Decimal
   monthly_interest_rate Decimal
   start_date            DateTime
-  status                String?
+  status                String?  // ACTIVE / COMPLETED / CANCELLED
   created_at            DateTime @default(now())
 
   user User           @relation(fields: [user_id], references: [id])
