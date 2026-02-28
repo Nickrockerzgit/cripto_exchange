@@ -186,7 +186,7 @@ model ReferralRankHistory {
   user User           @relation(fields: [user_id], references: [id])
   rank ReferralRank   @relation(fields: [rank_id], references: [id])
 
-  @@unique([user_id, rank_id]) // 🔥 Prevent double reward
+  @@unique([user_id, rank_id]) 
 }
 
 
@@ -221,8 +221,8 @@ model InternalTransfer {
 
 model DepositAddress {
   id         String   @id @default(uuid())
-  user_id    String
-  address    String
+  user_id    String   @unique
+  address    String   @unique
   index_no   Int
   created_at DateTime @default(now())
 
@@ -248,7 +248,7 @@ model InvestmentPlan {
 model Investment {
   id                    String   @id @default(uuid())
   user_id               String
-  plan_id               String
+  plan_id               String 
   amount                Decimal
   remaining_principal   Decimal
   monthly_interest_rate Decimal
