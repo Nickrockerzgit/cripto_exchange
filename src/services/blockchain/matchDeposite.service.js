@@ -8,9 +8,12 @@ class DepositMatcherService {
 
     console.log("🔄 Matching deposits...");
 
-    const pendingSubmissions = await prisma.depositSubmission.findMany({
-      where: { status: "PENDING" }
-    });
+   const pendingSubmissions = await prisma.depositSubmission.findMany({
+  where: { 
+    status: "PENDING",
+    type: "DEPOSIT"
+  }
+});
 
     for (const submission of pendingSubmissions) {
 
