@@ -44,7 +44,7 @@ async function register(req, res) {
         email,
         phone,
         password_hash,
-        status: 'PENDING',
+        robot_status: 'INACTIVE',
         email_verify_token: otp,
         referral_code: generatedReferralCode,
         referral_rank_id: referral_rank.id,

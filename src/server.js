@@ -14,6 +14,9 @@ import  startDepositJob  from './jobs/deposit.job.js';
 import startDepositMatcherJob from "./jobs/depositMatcher.job.js";
 import depositRoutes from "./routes/depositRoutes.js";
 import { createWallet } from './controllers/createwallet.controller.js';
+import robotRoutes from "./routes/robot.routes.js";
+
+import startRobotActivationJob from "./jobs/robotActivation.job.js";
 
 // Agar aur routes banaye honge to yaha import kar dena
 // const userRoutes = require('./routes/userRoutes');
@@ -53,6 +56,7 @@ app.use('/api/referrals',referralRoutes)
 app.use("/api/wallet", walletRoutes);
 app.use("/api/deposit", depositRoutes);
 app.use("/api/createwallet", createWallet);
+app.use("/api/robot", robotRoutes);
 // app.use('/api/wallets', walletRoutes);
 // app.use('/api/transactions', transactionRoutes);
 // ... baaki routes yaha add karte jana
@@ -92,6 +96,7 @@ async function startServer() {
   // 2️⃣ Start Deposit Scanner Job
     startDepositJob();
     startDepositMatcherJob();
+    startRobotActivationJob();
 
     app.listen(PORT, () => {
       console.log(`

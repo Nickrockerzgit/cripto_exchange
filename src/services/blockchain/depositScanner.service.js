@@ -169,12 +169,13 @@ class DepositScannerService {
         }
 
         // STEP 2 — Find matching user submission
-        const submission = await prisma.depositSubmission.findFirst({
-          where: {
-            tx_hash: txHash,
-            status: "PENDING"
-          }
-        });
+       const submission = await prisma.depositSubmission.findFirst({
+  where: {
+    tx_hash: txHash,
+    status: "PENDING",
+    type: "DEPOSIT"   // 👈 ONLY NORMAL DEPOSITS
+  }
+});
 
         if (!submission) {
           console.log("⚠ No user submission yet for:", txHash);
