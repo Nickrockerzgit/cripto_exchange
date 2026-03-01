@@ -1,6 +1,6 @@
 import investmentService from '../services/investment.service.js';
-import successResponse from '../utils/successResponse.js';
-import errorResponse from '../utils/errorResponse.js';
+import { successResponse } from '../utils/successResponse.js';
+import { errorResponse } from '../utils/errorResponse.js';
 
 class InvestmentController {
   /**

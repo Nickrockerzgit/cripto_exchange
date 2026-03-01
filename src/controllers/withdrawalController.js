@@ -1,6 +1,6 @@
 import withdrawalService from '../services/withdrawal.service.js';
-import successResponse from '../utils/successResponse.js';
-import errorResponse from '../utils/errorResponse.js';
+import { successResponse } from '../utils/successResponse.js';
+import { errorResponse } from '../utils/errorResponse.js';
 
 class WithdrawalController {
   /**
