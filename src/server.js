@@ -11,8 +11,10 @@ import userRoutes from './routes/userRoutes.js'
 import referralRoutes from './routes/referralRoutes.js'
 import walletRoutes from './routes/walletRoutes.js'
 import  startDepositJob  from './jobs/deposit.job.js';
+import startDepositMatcherJob from "./jobs/depositMatcher.job.js";
 import depositRoutes from "./routes/depositRoutes.js";
 import { createWallet } from './controllers/createwallet.controller.js';
+
 // Agar aur routes banaye honge to yaha import kar dena
 // const userRoutes = require('./routes/userRoutes');
 // const walletRoutes = require('./routes/walletRoutes');
@@ -89,6 +91,7 @@ async function startServer() {
     console.log('✅ Database connected successfully (Prisma)');
   // 2️⃣ Start Deposit Scanner Job
     startDepositJob();
+    startDepositMatcherJob();
 
     app.listen(PORT, () => {
       console.log(`

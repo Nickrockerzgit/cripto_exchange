@@ -270,6 +270,7 @@ model DepositSubmission {
   id          String   @id @default(uuid())
   user_id     String
   amount      Decimal
+  type       String @default("DEPOSIT")//Robot-Activation 
   tx_hash     String   @unique
   deposit_address String
   screenshot  String?
@@ -277,4 +278,15 @@ model DepositSubmission {
   created_at  DateTime @default(now())
 
   user User @relation(fields: [user_id], references: [id])
+}
+
+
+model BlockchainDeposit {
+  id            String   @id @default(uuid())
+  tx_hash       String   @unique
+  from_addr     String
+  to_addr       String
+  amount        Decimal
+  confirmations Int // pending /confirmed 
+  is_used       Boolean  @default(false)
 }
