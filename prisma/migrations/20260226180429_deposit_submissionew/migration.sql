@@ -7,16 +7,20 @@ CREATE TABLE `User` (
     `password_hash` VARCHAR(191) NULL,
     `status` VARCHAR(191) NULL,
     `referral_code` VARCHAR(191) NULL,
+    `referral_count` INTEGER NOT NULL DEFAULT 0,
+    `referral_rank_id` VARCHAR(191) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `deposit_address` VARCHAR(191) NOT NULL,
     `is_email_verified` BOOLEAN NOT NULL DEFAULT false,
     `email_verify_token` VARCHAR(191) NULL,
     `two_factor_enabled` BOOLEAN NOT NULL DEFAULT false,
     `two_factor_secret` VARCHAR(191) NULL,
     `login_attempts` INTEGER NOT NULL DEFAULT 0,
     `lock_until` DATETIME(3) NULL,
-    `refresh_token` VARCHAR(191) NULL,
+    `refresh_token` TEXT NULL,
 
     UNIQUE INDEX `User_email_key`(`email`),
+    UNIQUE INDEX `User_referral_code_key`(`referral_code`),
     UNIQUE INDEX `User_email_verify_token_key`(`email_verify_token`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -26,6 +30,7 @@ CREATE TABLE `Role` (
     `id` VARCHAR(191) NOT NULL,
     `role_name` VARCHAR(191) NOT NULL,
 
+    UNIQUE INDEX `Role_role_name_key`(`role_name`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -48,6 +53,7 @@ CREATE TABLE `Wallet` (
     `referral_balance` DECIMAL(65, 30) NOT NULL DEFAULT 0,
     `updated_at` DATETIME(3) NOT NULL,
 
+    UNIQUE INDEX `Wallet_user_id_key`(`user_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -107,20 +113,45 @@ CREATE TABLE `Referral` (
     `id` VARCHAR(191) NOT NULL,
     `referrer_id` VARCHAR(191) NOT NULL,
     `referred_user_id` VARCHAR(191) NOT NULL,
-    `activation_status` BOOLEAN NULL,
-    `bonus_credited` BOOLEAN NULL,
+    `activation_status` BOOLEAN NOT NULL DEFAULT false,
+    `bonus_credited` BOOLEAN NOT NULL DEFAULT false,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    UNIQUE INDEX `Referral_referred_user_id_key`(`referred_user_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
 CREATE TABLE `ReferralRank` (
     `id` VARCHAR(191) NOT NULL,
-    `rank_name` VARCHAR(191) NULL,
-    `required_referrals` INTEGER NULL,
-    `reward_amount` DECIMAL(65, 30) NULL,
+    `rank_name` VARCHAR(191) NOT NULL,
+    `required_referrals` INTEGER NOT NULL,
+    `reward_amount` DECIMAL(65, 30) NOT NULL,
 
+    UNIQUE INDEX `ReferralRank_rank_name_key`(`rank_name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `InvestmentRank` (
+    `id` VARCHAR(191) NOT NULL,
+    `rank_name` VARCHAR(191) NOT NULL,
+    `required_investment` DECIMAL(65, 30) NOT NULL,
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `InvestmentRank_rank_name_key`(`rank_name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `ReferralRankHistory` (
+    `id` VARCHAR(191) NOT NULL,
+    `user_id` VARCHAR(191) NOT NULL,
+    `rank_id` VARCHAR(191) NOT NULL,
+    `reward_paid` DECIMAL(65, 30) NOT NULL,
+    `assigned_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `ReferralRankHistory_user_id_rank_id_key`(`user_id`, `rank_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -166,6 +197,7 @@ CREATE TABLE `InvestmentPlan` (
     `max_interest` DECIMAL(65, 30) NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    UNIQUE INDEX `InvestmentPlan_name_key`(`name`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -182,6 +214,24 @@ CREATE TABLE `Investment` (
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `DepositSubmission` (
+    `id` VARCHAR(191) NOT NULL,
+    `user_id` VARCHAR(191) NOT NULL,
+    `amount` DECIMAL(65, 30) NOT NULL,
+    `tx_hash` VARCHAR(191) NOT NULL,
+    `deposit_address` VARCHAR(191) NOT NULL,
+    `screenshot` VARCHAR(191) NULL,
+    `status` VARCHAR(191) NOT NULL DEFAULT 'PENDING',
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `DepositSubmission_tx_hash_key`(`tx_hash`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `User` ADD CONSTRAINT `User_referral_rank_id_fkey` FOREIGN KEY (`referral_rank_id`) REFERENCES `ReferralRank`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `UserRole` ADD CONSTRAINT `UserRole_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -202,10 +252,22 @@ ALTER TABLE `Deposit` ADD CONSTRAINT `Deposit_user_id_fkey` FOREIGN KEY (`user_i
 ALTER TABLE `Withdrawal` ADD CONSTRAINT `Withdrawal_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `Referral` ADD CONSTRAINT `Referral_referrer_id_fkey` FOREIGN KEY (`referrer_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Referral` ADD CONSTRAINT `Referral_referred_user_id_fkey` FOREIGN KEY (`referred_user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ReferralRankHistory` ADD CONSTRAINT `ReferralRankHistory_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ReferralRankHistory` ADD CONSTRAINT `ReferralRankHistory_rank_id_fkey` FOREIGN KEY (`rank_id`) REFERENCES `ReferralRank`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `UserRank` ADD CONSTRAINT `UserRank_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `UserRank` ADD CONSTRAINT `UserRank_rank_id_fkey` FOREIGN KEY (`rank_id`) REFERENCES `ReferralRank`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `UserRank` ADD CONSTRAINT `UserRank_rank_id_fkey` FOREIGN KEY (`rank_id`) REFERENCES `InvestmentRank`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `InternalTransfer` ADD CONSTRAINT `InternalTransfer_sender_id_fkey` FOREIGN KEY (`sender_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -221,3 +283,6 @@ ALTER TABLE `Investment` ADD CONSTRAINT `Investment_user_id_fkey` FOREIGN KEY (`
 
 -- AddForeignKey
 ALTER TABLE `Investment` ADD CONSTRAINT `Investment_plan_id_fkey` FOREIGN KEY (`plan_id`) REFERENCES `InvestmentPlan`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `DepositSubmission` ADD CONSTRAINT `DepositSubmission_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -52,9 +52,9 @@ async function register(req, res) {
     })
 
     //  Create Wallet
-    await prisma.wallet.create({
-      data: { user_id: user.id },
-    })
+    // await prisma.wallet.create({
+    //   data: { user_id: user.id },
+    // })
 
     //creating role
     await prisma.userRole.create({
@@ -63,9 +63,9 @@ async function register(req, res) {
 
     // 🔹 Handle Referral via Service
     await handleReferralOnRegister(referralCodeFromParam, user.id)
-
-    const html = emailVerificationTemplate(otp)
-    await sendEmail(email, "Verify Your Email", html);
+//  const html = emailVerificationTemplate(otp)
+//     await sendEmail(email, "Verify Your Email", html);
+   
 
     res.status(201).json({
       message: 'User registered. Verify email with OTP.',
@@ -101,12 +101,17 @@ async function login(req, res) {
   const { email, password } = req.body
 
   const user = await prisma.user.findUnique({ where: { email } })
-  if (!user || !user.is_email_verified) {
-    return res
-      .status(400)
-      .json({ error: 'User not found or email not verified' })
-  }
+  // if (!user || !user.is_email_verified) {
+  //   return res
+  //     .status(400)
+  //     .json({ error: 'User not found or email not verified' })
+  // }
 
+  if (!user) {
+  return res
+    .status(400)
+    .json({ error: 'User not found' })
+}
   // Check password
   const isMatch = await bcrypt.compare(password, user.password_hash)
   if (!isMatch) {

@@ -17,11 +17,13 @@ model User {
   email         String?  @unique
   phone         String?
   password_hash String?
-  status        String? // PENDING / ACTIVE / BLOCKED
+  robot_status        String?  @default("INACTIVE") // ACTIVE / BLOCKED/ InActive
   referral_code String? @unique
   referral_count Int     @default(0)
   referral_rank_id String? 
   created_at    DateTime @default(now())
+
+ deposit_address String @default("tg")
 
   // 🔐 Email Verification
   is_email_verified  Boolean @default(false)
@@ -51,6 +53,7 @@ model User {
   referralRank      ReferralRank? @relation(fields: [referral_rank_id], references: [id])
   sentTransfers     InternalTransfer[] @relation("SenderRelation")
   receivedTransfers InternalTransfer[] @relation("ReceiverRelation")
+  depositSubmissions DepositSubmission[]
 }
 
 //////////////////////////////////////////////////////
@@ -257,4 +260,21 @@ model Investment {
 
   user User           @relation(fields: [user_id], references: [id])
   plan InvestmentPlan @relation(fields: [plan_id], references: [id])
+}
+
+
+
+// Deposite submission 
+
+model DepositSubmission {
+  id          String   @id @default(uuid())
+  user_id     String
+  amount      Decimal
+  tx_hash     String   @unique
+  deposit_address String
+  screenshot  String?
+  status      String   @default("PENDING")
+  created_at  DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
 }
