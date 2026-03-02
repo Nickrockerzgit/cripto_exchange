@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import * as refralService from '../services/referral.service.js'
 import { PrismaClient } from '@prisma/client'
 import { refreshToken } from './authControllers.js'
+import { successResponse } from '../utils/successResponse.js'
 
 const prisma = new PrismaClient()
 
@@ -35,87 +36,106 @@ async function handleReferralOnRegister(referralCode, newUserId) {
       },
     })
 
-    // 5️⃣ Check rank upgrade
-    await checkAndUpgradeRank(
-      updatedReferrer.id,
-      updatedReferrer.referral_count,
-    )
+    // 5️ Check rank upgrade
+    await checkAndUpgradeRank(updatedReferrer.id)
   } catch (error) {
     console.log(error)
     return error
   }
 }
 
-// 🔹 Rank Upgrade Logic
-// 🔹 Rank Upgrade Logic (Production Safe)
-async function checkAndUpgradeRank(userId, referralCount) {
-  return await prisma.$transaction(async (tx) => {
-    // 1️⃣ Get user
-    const user = await tx.user.findUnique({
-      where: { id: userId },
-    })
+async function checkAndUpgradeRank(userId) {
+  if (!userId) return
 
-    if (!user) return
+  // 1️⃣ Get user
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      referral_count: true,
+      referral_rank_id: true,
+    },
+  })
 
-    // // 2️⃣ If rank locked → stop
-    // if (user.rank_locked) return;
+  if (!user) return
 
-    // 3️⃣ Find highest eligible rank
-    const eligibleRank = await tx.referralRank.findFirst({
+  // 2️⃣ Get current rank
+  const currentRank = await prisma.referralRank.findUnique({
+    where: { id: user.referral_rank_id },
+  })
+
+  if (!currentRank) return
+
+  // ===============================
+  // 🔹 STEP 1: ASSIGN NEXT LEVEL
+  // ===============================
+
+  // If user completed current level requirement
+  if (user.referral_count >= currentRank.required_referrals) {
+    // Get next level
+    const nextRank = await prisma.referralRank.findFirst({
       where: {
-        required_referrals: { lte: referralCount },
+        required_referrals: {
+          gt: currentRank.required_referrals,
+        },
       },
       orderBy: {
-        required_referrals: 'desc',
+        required_referrals: 'asc',
       },
     })
 
-    if (!eligibleRank) return
+    if (nextRank) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          referral_rank_id: nextRank.id,
+        },
+      })
+    }
+  }
 
-    // 4️⃣ Prevent downgrade
-    if (user.referral_rank_id === eligibleRank.id) return
+  // ===============================
+  // 🔹 STEP 2: REWARD LOGIC
+  // ===============================
 
-    // 5️⃣ Check if reward already paid
-    const alreadyRewarded = await tx.referralRankHistory.findUnique({
+  // Reward only when user completes THIS level requirement
+  if (user.referral_count >= currentRank.required_referrals) {
+    const alreadyRewarded = await prisma.referralRankHistory.findUnique({
       where: {
         user_id_rank_id: {
           user_id: userId,
-          rank_id: eligibleRank.id,
+          rank_id: currentRank.id,
         },
       },
     })
 
-    if (alreadyRewarded) return
-
-    // 6️⃣ Update user rankd
-    await tx.user.update({
-      where: { id: userId },
-      data: {
-        referral_rank_id: eligibleRank.id,
-      },
-    })
-
-    // 7️⃣ Credit referral bonus to wallet
-    await tx.wallet.updateMany({
-      where: { user_id: userId },
-      data: {
-        referral_balance: {
-          increment: eligibleRank.reward_amount,
+    if (!alreadyRewarded) {
+      // Reward wallet
+      await prisma.wallet.update({
+        where: { user_id: userId },
+        data: {
+          referral_balance: {
+            increment: currentRank.reward_amount,
+          },
+          main_balance: {
+            increment: currentRank.reward_amount,
+          },
         },
-      },
-    })
+      })
 
-    // 8️⃣ Store history (prevents double reward)
-    await tx.referralRankHistory.create({
-      data: {
-        user_id: userId,
-        rank_id: eligibleRank.id,
-        reward_paid: eligibleRank.reward_amount,
-      },
-    })
-  })
+      // Save reward history
+      await prisma.referralRankHistory.create({
+        data: {
+          user_id: userId,
+          rank_id: currentRank.id,
+          reward_paid: currentRank.reward_amount,
+        },
+      })
+    }
+  }
+
+  return { success: true }
 }
-
 export const getAllRefralsByUserId = async (req, res) => {
   try {
     // const userId = req.user.id; // if using auth middleware
@@ -130,7 +150,6 @@ export const getAllRefralsByUserId = async (req, res) => {
     res.status(500).json({ message: error.message })
   }
 }
-
 
 export const getAllUsersRefrals = async (req, res) => {
   try {

@@ -12,6 +12,7 @@ import {
 } from '../utils/emailTemplates.js'
 import { sendEmail } from '../services/emailService.js'
 import { handleReferralOnRegister } from '../controllers/refralsControllers.js'
+import { generateTronAddress } from '../utils/tronAddressGenerator.js'
 
 const prisma = new PrismaClient()
 
@@ -33,6 +34,14 @@ async function register(req, res) {
     const referral_rank = await prisma.referralRank.findUnique({
       where: { rank_name: 'Level 1' },
     })
+
+    if (!role) {
+  throw new Error("USER role not found in database")
+}
+
+if (!referral_rank) {
+  throw new Error("Level 1 referral rank not found in database")
+}
     const password_hash = await bcrypt.hash(password, 10)
     const generatedReferralCode = generateReferralCode()
     const otp = generateOTP()
@@ -51,6 +60,25 @@ async function register(req, res) {
       },
     })
 
+    // 🔹 Generate and assign deposit address
+const lastAddress = await prisma.depositAddress.findFirst({
+  orderBy: {
+    index_no: 'desc'
+  }
+})
+
+const newIndex = lastAddress ? Number(lastAddress.index_no) + 1 : 0
+
+const { address, index } = generateTronAddress(newIndex)
+
+await prisma.depositAddress.create({
+  data: {
+    user_id: user.id,
+    address: address,
+    index_no: index
+  }
+})
+
     //  Create Wallet
     // await prisma.wallet.create({
     //   data: { user_id: user.id },
@@ -63,9 +91,11 @@ async function register(req, res) {
 
     // 🔹 Handle Referral via Service
     await handleReferralOnRegister(referralCodeFromParam, user.id)
-//  const html = emailVerificationTemplate(otp)
-//     await sendEmail(email, "Verify Your Email", html);
-   
+
+    console.log("address",address);
+
+    const html = emailVerificationTemplate(otp)
+    await sendEmail(email, "Verify Your Email", html);
 
     res.status(201).json({
       message: 'User registered. Verify email with OTP.',

@@ -15,4 +15,6 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// Export as both default and named export for compatibility
 export default authMiddleware;
+export const protect = authMiddleware;

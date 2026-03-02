@@ -18,6 +18,9 @@ import robotRoutes from "./routes/robot.routes.js";
 
 import startRobotActivationJob from "./jobs/robotActivation.job.js";
 
+import investmentRoutes from './routes/investmentRoutes.js'
+import withdrawalRoutes from './routes/withdrawalRoutes.js'
+import cronJobs from './config/cronJobs.js'
 // Agar aur routes banaye honge to yaha import kar dena
 // const userRoutes = require('./routes/userRoutes');
 // const walletRoutes = require('./routes/walletRoutes');
@@ -57,6 +60,8 @@ app.use("/api/wallet", walletRoutes);
 app.use("/api/deposit", depositRoutes);
 app.use("/api/createwallet", createWallet);
 app.use("/api/robot", robotRoutes);
+app.use('/api/investments', investmentRoutes)
+app.use('/api/withdrawals', withdrawalRoutes)
 // app.use('/api/wallets', walletRoutes);
 // app.use('/api/transactions', transactionRoutes);
 // ... baaki routes yaha add karte jana
@@ -97,6 +102,9 @@ async function startServer() {
     startDepositJob();
     startDepositMatcherJob();
     startRobotActivationJob();
+
+    // Initialize cron jobs
+    cronJobs.init();
 
     app.listen(PORT, () => {
       console.log(`
