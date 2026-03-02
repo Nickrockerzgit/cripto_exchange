@@ -209,6 +209,8 @@ model InternalTransfer {
   sender_id   String
   receiver_id String
   amount      Decimal
+  status      String   @default("SUCCESS") // SUCCESS / FAILED
+  description String?
   created_at  DateTime @default(now())
 
   sender   User @relation("SenderRelation", fields: [sender_id], references: [id])

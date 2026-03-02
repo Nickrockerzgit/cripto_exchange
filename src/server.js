@@ -11,6 +11,7 @@ import userRoutes from './routes/userRoutes.js'
 import referralRoutes from './routes/referralRoutes.js'
 import investmentRoutes from './routes/investmentRoutes.js'
 import withdrawalRoutes from './routes/withdrawalRoutes.js'
+import transferRoutes from './routes/transferRoutes.js'
 import cronJobs from './config/cronJobs.js'
 // Agar aur routes banaye honge to yaha import kar dena
 // const userRoutes = require('./routes/userRoutes');
@@ -49,6 +50,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/referrals',referralRoutes)
 app.use('/api/investments', investmentRoutes)
 app.use('/api/withdrawals', withdrawalRoutes)
+app.use('/api/transfers', transferRoutes)
 // app.use('/api/wallets', walletRoutes);
 // app.use('/api/transactions', transactionRoutes);
 // ... baaki routes yaha add karte jana
@@ -91,15 +93,15 @@ async function startServer() {
 
     app.listen(PORT, () => {
       console.log(`
-╔════════════════════════════════════════════╗
-║                                            ║
-║      Server is running on port ${PORT}      ║
-║      http://localhost:${PORT}               ║
-║                                            ║
-║   → API Base: http://localhost:${PORT}/api  ║
-║   → Health:   http://localhost:${PORT}/health║
-║                                            ║
-╚════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════╗
+║                                               ║
+║      Server is running on port ${PORT}        ║
+║      http://localhost:${PORT}                 ║
+║                                               ║
+║   → API Base: http://localhost:${PORT}/api    ║
+║   → Health:   http://localhost:${PORT}/health ║
+║                                               ║
+╚═══════════════════════════════════════════════╝
       `);
     });
   } catch (error) {
