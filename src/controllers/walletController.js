@@ -4,7 +4,8 @@ const prisma = new PrismaClient();
 
 export const getDepositAddress = async (req, res) => {
   try {
-    const userId = req.user.id;
+    // const userId = req.user.id;=====================================================================================
+    const userId = req.user.userId;
 
     const address = await prisma.depositAddress.findFirst({
       where: { user_id: userId },

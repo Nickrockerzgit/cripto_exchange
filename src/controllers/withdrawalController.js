@@ -9,7 +9,8 @@ class WithdrawalController {
    */
   async getUserWithdrawals(req, res) {
     try {
-      const userId = req.user.id;
+      // const userId = req.user.id;================================================================================================
+      const userId = req.user.userId;
       const { type, status } = req.query;
 
       const withdrawals = await withdrawalService.getUserWithdrawals(userId, type, status);
@@ -31,7 +32,8 @@ class WithdrawalController {
    */
   async getWithdrawalById(req, res) {
     try {
-      const userId = req.user.id;
+      // const userId = req.user.id;===========================================================================
+       const userId = req.user.userId;
       const { id } = req.params;
 
       const withdrawal = await withdrawalService.getWithdrawalById(id, userId);
@@ -53,7 +55,8 @@ class WithdrawalController {
    */
   async requestWithdrawal(req, res) {
     try {
-      const userId = req.user.id;
+      // const userId = req.user.id;==============================================================================
+       const userId = req.user.userId;
       const { type, amount } = req.body;
 
       // Validate input
@@ -89,7 +92,8 @@ class WithdrawalController {
    */
   async getWithdrawalStats(req, res) {
     try {
-      const userId = req.user.id;
+      // const userId = req.user.id;=============================================================================
+       const userId = req.user.userId;
 
       const stats = await withdrawalService.getWithdrawalStats(userId);
 
@@ -110,7 +114,8 @@ class WithdrawalController {
    */
   async cancelWithdrawal(req, res) {
     try {
-      const userId = req.user.id;
+      // const userId = req.user.id;=============================================================================
+       const userId = req.user.userId;
       const { id } = req.params;
 
       const cancelled = await withdrawalService.cancelWithdrawal(id, userId);
