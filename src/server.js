@@ -22,9 +22,6 @@ import investmentRoutes from './routes/investmentRoutes.js'
 import withdrawalRoutes from './routes/withdrawalRoutes.js'
 import transferRoutes from './routes/transferRoutes.js'
 import cronJobs from './config/cronJobs.js'
-// Agar aur routes banaye honge to yaha import kar dena
-// const userRoutes = require('./routes/userRoutes');
-// const walletRoutes = require('./routes/walletRoutes');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -32,11 +29,39 @@ const prisma = new PrismaClient();
 // ────────────────────────────────────────────────
 // Middlewares
 // ────────────────────────────────────────────────
-app.use(cors());
+
+// FIX: Explicitly including your frontend port and adding a fallback
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'http://localhost:8081',
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [])
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // Log for debugging which origin is failing
+      console.error(`CORS Blocked: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+// MANDATORY FIX: Use standard cors middleware for all routes including preflight
+app.use(cors(corsOptions)); 
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Logging (development mein helpful)
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
@@ -56,6 +81,9 @@ app.get('/health', (req, res) => {
 // ────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes); 
+app.use('/api/referrals', referralRoutes)
+app.use('/api/investments', investmentRoutes)
+app.use('/api/withdrawals', withdrawalRoutes)
 app.use('/api/referrals',referralRoutes)
 app.use("/api/wallet", walletRoutes);
 app.use("/api/deposit", depositRoutes);
@@ -97,7 +125,6 @@ const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   try {
-    // Prisma connection check
     await prisma.$connect();
     console.log('✅ Database connected successfully (Prisma)');
   // 2️⃣ Start Deposit Scanner Job
@@ -105,7 +132,6 @@ async function startServer() {
     startDepositMatcherJob();
     startRobotActivationJob();
 
-    // Initialize cron jobs
     cronJobs.init();
 
     app.listen(PORT, () => {
@@ -128,10 +154,8 @@ async function startServer() {
   }
 }
 
-// Start the server
 startServer();
 
-// Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received. Closing server...');
   await prisma.$disconnect();
