@@ -53,7 +53,7 @@ if (!referral_rank) {
         email,
         phone,
         password_hash,
-        status: 'PENDING',
+        robot_status: 'INACTIVE',
         email_verify_token: otp,
         referral_code: generatedReferralCode,
         referral_rank_id: referral_rank.id,
@@ -80,9 +80,9 @@ await prisma.depositAddress.create({
 })
 
     //  Create Wallet
-    await prisma.wallet.create({
-      data: { user_id: user.id },
-    })
+    // await prisma.wallet.create({
+    //   data: { user_id: user.id },
+    // })
 
     //creating role
     await prisma.userRole.create({
@@ -131,12 +131,17 @@ async function login(req, res) {
   const { email, password } = req.body
 
   const user = await prisma.user.findUnique({ where: { email } })
-  if (!user || !user.is_email_verified) {
-    return res
-      .status(400)
-      .json({ error: 'User not found or email not verified' })
-  }
+  // if (!user || !user.is_email_verified) {
+  //   return res
+  //     .status(400)
+  //     .json({ error: 'User not found or email not verified' })
+  // }
 
+  if (!user) {
+  return res
+    .status(400)
+    .json({ error: 'User not found' })
+}
   // Check password
   const isMatch = await bcrypt.compare(password, user.password_hash)
   if (!isMatch) {

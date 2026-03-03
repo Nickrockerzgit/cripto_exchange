@@ -10,6 +10,7 @@ import {
 } from '../controllers/userController.js';
 import { getAllUsersRefrals } from '../controllers/refralsControllers.js';
 
+
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
