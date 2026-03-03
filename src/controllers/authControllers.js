@@ -335,6 +335,37 @@ const generateReferralCode = () => {
   return nanoid(8) // 8 character unique code
 }
 
+async function resendOtp(req, res) {
+  const { email } = req.body
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' })
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) {
+      return res.status(404).json({ error: 'No account found with this email' })
+    }
+    if (user.is_email_verified) {
+      return res.status(400).json({ error: 'Email is already verified. Please login.' })
+    }
+
+    const otp = generateOTP()
+    await prisma.user.update({
+      where: { email },
+      data: { email_verify_token: otp },
+    })
+
+    const html = emailVerificationTemplate(otp)
+    await sendEmail(email, 'Verify Your Email', html)
+
+    res.json({ message: 'A new OTP has been sent to your email.' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Failed to resend OTP' })
+  }
+}
+
 export {
   register,
   verifyEmail,
@@ -343,4 +374,5 @@ export {
   enable2FA,
   confirmEnable2FA,
   refreshToken,
+  resendOtp,
 }
