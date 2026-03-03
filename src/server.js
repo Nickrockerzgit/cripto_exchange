@@ -9,8 +9,18 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js'
 import referralRoutes from './routes/referralRoutes.js'
+import walletRoutes from './routes/walletRoutes.js'
+import  startDepositJob  from './jobs/deposit.job.js';
+import startDepositMatcherJob from "./jobs/depositMatcher.job.js";
+import depositRoutes from "./routes/depositRoutes.js";
+import { createWallet } from './controllers/createwallet.controller.js';
+import robotRoutes from "./routes/robot.routes.js";
+
+import startRobotActivationJob from "./jobs/robotActivation.job.js";
+
 import investmentRoutes from './routes/investmentRoutes.js'
 import withdrawalRoutes from './routes/withdrawalRoutes.js'
+import transferRoutes from './routes/transferRoutes.js'
 import cronJobs from './config/cronJobs.js'
 
 const app = express();
@@ -74,6 +84,17 @@ app.use('/api/users', userRoutes);
 app.use('/api/referrals', referralRoutes)
 app.use('/api/investments', investmentRoutes)
 app.use('/api/withdrawals', withdrawalRoutes)
+app.use('/api/referrals',referralRoutes)
+app.use("/api/wallet", walletRoutes);
+app.use("/api/deposit", depositRoutes);
+app.use("/api/createwallet", createWallet);
+app.use("/api/robot", robotRoutes);
+app.use('/api/investments', investmentRoutes)
+app.use('/api/withdrawals', withdrawalRoutes)
+app.use('/api/transfers', transferRoutes)
+// app.use('/api/wallets', walletRoutes);
+// app.use('/api/transactions', transactionRoutes);
+// ... baaki routes yaha add karte jana
 
 // 404 handler
 app.use((req, res) => {
@@ -106,20 +127,24 @@ async function startServer() {
   try {
     await prisma.$connect();
     console.log('✅ Database connected successfully (Prisma)');
+  // 2️⃣ Start Deposit Scanner Job
+    startDepositJob();
+    startDepositMatcherJob();
+    startRobotActivationJob();
 
     cronJobs.init();
 
     app.listen(PORT, () => {
       console.log(`
-╔════════════════════════════════════════════╗
-║                                            ║
-║      Server is running on port ${PORT}      ║
-║      http://localhost:${PORT}               ║
-║                                            ║
-║   → API Base: http://localhost:${PORT}/api  ║
-║   → Health:   http://localhost:${PORT}/health║
-║                                            ║
-╚════════════════════════════════════════════╝
+╔═══════════════════════════════════════════════╗
+║                                               ║
+║      Server is running on port ${PORT}        ║
+║      http://localhost:${PORT}                 ║
+║                                               ║
+║   → API Base: http://localhost:${PORT}/api    ║
+║   → Health:   http://localhost:${PORT}/health ║
+║                                               ║
+╚═══════════════════════════════════════════════╝
       `);
     });
   } catch (error) {
