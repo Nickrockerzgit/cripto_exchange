@@ -12,10 +12,12 @@ async function sendEmail(to, subject, html, attachments = []) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${to}`);
+    console.log(`✅ Email sent to ${to}`);
+    return { success: true };
   } catch (error) {
-    console.error(`Error sending email: ${error}`);
-    throw new Error('Failed to send email');
+    console.error(`❌ Error sending email to ${to}:`, error.message);
+    // Don't throw error - just log it so signup doesn't fail
+    return { success: false, error: error.message };
   }
 }
 

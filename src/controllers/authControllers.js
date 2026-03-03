@@ -53,7 +53,7 @@ if (!referral_rank) {
         email,
         phone,
         password_hash,
-        robot_status: 'INACTIVE',
+        status: 'PENDING',
         email_verify_token: otp,
         referral_code: generatedReferralCode,
         referral_rank_id: referral_rank.id,
@@ -80,9 +80,9 @@ await prisma.depositAddress.create({
 })
 
     //  Create Wallet
-    // await prisma.wallet.create({
-    //   data: { user_id: user.id },
-    // })
+    await prisma.wallet.create({
+      data: { user_id: user.id },
+    })
 
     //creating role
     await prisma.userRole.create({
@@ -127,21 +127,51 @@ async function verifyEmail(req, res) {
   res.json({ message: 'Email verified successfully' })
 }
 
+async function resendOTP(req, res) {
+  try {
+    const { email } = req.body
+
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    if (user.is_email_verified) {
+      return res.status(400).json({ error: 'Email already verified' })
+    }
+
+    // Generate new OTP
+    const otp = generateOTP()
+
+    // Update user with new OTP
+    await prisma.user.update({
+      where: { email },
+      data: {
+        email_verify_token: otp,
+      },
+    })
+
+    // Send email with new OTP
+    const html = emailVerificationTemplate(otp)
+    await sendEmail(email, 'Verify Your Email', html)
+
+    res.json({ message: 'OTP sent successfully' })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Failed to resend OTP' })
+  }
+}
+
 async function login(req, res) {
   const { email, password } = req.body
 
   const user = await prisma.user.findUnique({ where: { email } })
-  // if (!user || !user.is_email_verified) {
-  //   return res
-  //     .status(400)
-  //     .json({ error: 'User not found or email not verified' })
-  // }
+  if (!user || !user.is_email_verified) {
+    return res
+      .status(400)
+      .json({ error: 'User not found or email not verified' })
+  }
 
-  if (!user) {
-  return res
-    .status(400)
-    .json({ error: 'User not found' })
-}
   // Check password
   const isMatch = await bcrypt.compare(password, user.password_hash)
   if (!isMatch) {
@@ -262,32 +292,37 @@ async function enable2FA(req, res) {
 
   const otpauthUrl = speakeasy.otpauthURL({
     secret: secret.ascii,
-    label: `YourApp:${user.email}`,
-    issuer: 'YourApp',
+    label: `TradePro:${user.email}`,
+    issuer: 'TradePro',
   })
 
-  // QR code ko Buffer mein convert kar (base64 nahi, binary buffer)
+  // QR code ko base64 string me convert kar (frontend me display ke liye)
+  const qrCodeDataUrl = await qrcode.toDataURL(otpauthUrl, {
+    width: 300,
+  })
+
+  // Also create buffer for email
   const qrBuffer = await qrcode.toBuffer(otpauthUrl, {
     type: 'png',
-    width: 300, // size adjust kar sakta hai
+    width: 300,
   })
 
-  const html = twoFactorSetupTemplate() // Ab without qrCodeUrl
+  const html = twoFactorSetupTemplate()
 
-  // Send email with embedded attachment
+  // Send email with embedded attachment (optional backup)
   await sendEmail(user.email, 'Setup 2FA', html, [
     {
       filename: 'qr-code.png',
       content: qrBuffer,
-      cid: 'qr-code', // Yeh important! img src="cid:qr-code" se match karega
+      cid: 'qr-code',
     },
   ])
 
-  // Response mein secret bhej (user manually daal sake agar QR na dikhe)
+  // Response me QR code image (base64) aur secret dono bhej
   res.json({
-    message:
-      'Check your email for QR code to scan. If not visible, use this secret manually in your app.',
-    secret: secret.base32,
+    message: 'Scan the QR code or use manual key to setup 2FA',
+    qrCode: qrCodeDataUrl, // Base64 image data URL
+    secret: secret.base32,  // Manual entry key
   })
 }
 
@@ -340,44 +375,13 @@ const generateReferralCode = () => {
   return nanoid(8) // 8 character unique code
 }
 
-async function resendOtp(req, res) {
-  const { email } = req.body
-  if (!email) {
-    return res.status(400).json({ error: 'Email is required' })
-  }
-
-  try {
-    const user = await prisma.user.findUnique({ where: { email } })
-    if (!user) {
-      return res.status(404).json({ error: 'No account found with this email' })
-    }
-    if (user.is_email_verified) {
-      return res.status(400).json({ error: 'Email is already verified. Please login.' })
-    }
-
-    const otp = generateOTP()
-    await prisma.user.update({
-      where: { email },
-      data: { email_verify_token: otp },
-    })
-
-    const html = emailVerificationTemplate(otp)
-    await sendEmail(email, 'Verify Your Email', html)
-
-    res.json({ message: 'A new OTP has been sent to your email.' })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Failed to resend OTP' })
-  }
-}
-
 export {
   register,
   verifyEmail,
+  resendOTP,
   login,
   verify2FA,
   enable2FA,
   confirmEnable2FA,
   refreshToken,
-  resendOtp,
 }

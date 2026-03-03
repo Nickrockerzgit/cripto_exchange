@@ -12,8 +12,9 @@ const tronWeb = new TronWeb({
 
 // move XPUB to env later (recommended)
 const xpub =
-  process.env.TRON_XPUB ||
-  "xpub6CkrNdtEzPpqBx3xXNs9vdGA3Gwn851YxRTr2vEAUxUHR9yMy8osxXvMHshmU9dUptDVAzTusgF6HYrtJ61NpTmQGN6wdjbYzyAodypwjNa";
+  (process.env.TRON_XPUB && !process.env.TRON_XPUB.includes('your-')) 
+    ? process.env.TRON_XPUB 
+    : "xpub6CkrNdtEzPpqBx3xXNs9vdGA3Gwn851YxRTr2vEAUxUHR9yMy8osxXvMHshmU9dUptDVAzTusgF6HYrtJ61NpTmQGN6wdjbYzyAodypwjNa";
 
 const accountNode = bip32.fromBase58(xpub);
 
