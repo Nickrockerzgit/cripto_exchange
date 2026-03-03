@@ -48,6 +48,42 @@ class WithdrawalController {
   }
 
   /**
+   * Request withdrawal
+   * POST /api/withdrawals/request
+   */
+  async requestWithdrawal(req, res) {
+    try {
+      const userId = req.user.id;
+      const { type, amount } = req.body;
+
+      // Validate input
+      if (!type || !amount) {
+        return errorResponse(res, 'Type and amount are required', 400);
+      }
+
+      if (!['PROFIT', 'PRINCIPAL'].includes(type.toUpperCase())) {
+        return errorResponse(res, 'Invalid withdrawal type', 400);
+      }
+
+      const withdrawal = await withdrawalService.requestWithdrawal(
+        userId,
+        type.toUpperCase(),
+        amount
+      );
+
+      return successResponse(
+        res,
+        'Withdrawal request submitted successfully',
+        withdrawal,
+        201
+      );
+    } catch (error) {
+      console.error('Request withdrawal error:', error);
+      return errorResponse(res, error.message, 400);
+    }
+  }
+
+  /**
    * Get withdrawal statistics
    * GET /api/withdrawals/stats
    */
