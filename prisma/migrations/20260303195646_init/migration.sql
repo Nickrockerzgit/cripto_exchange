@@ -5,12 +5,13 @@ CREATE TABLE `User` (
     `email` VARCHAR(191) NULL,
     `phone` VARCHAR(191) NULL,
     `password_hash` VARCHAR(191) NULL,
-    `status` VARCHAR(191) NULL,
+    `status` VARCHAR(191) NULL DEFAULT 'PENDING',
+    `robot_status` VARCHAR(191) NULL DEFAULT 'INACTIVE',
     `referral_code` VARCHAR(191) NULL,
     `referral_count` INTEGER NOT NULL DEFAULT 0,
     `referral_rank_id` VARCHAR(191) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `deposit_address` VARCHAR(191) NOT NULL,
+    `deposit_address` VARCHAR(191) NOT NULL DEFAULT 'tg',
     `is_email_verified` BOOLEAN NOT NULL DEFAULT false,
     `email_verify_token` VARCHAR(191) NULL,
     `two_factor_enabled` BOOLEAN NOT NULL DEFAULT false,
@@ -171,6 +172,8 @@ CREATE TABLE `InternalTransfer` (
     `sender_id` VARCHAR(191) NOT NULL,
     `receiver_id` VARCHAR(191) NOT NULL,
     `amount` DECIMAL(65, 30) NOT NULL,
+    `status` VARCHAR(191) NOT NULL DEFAULT 'SUCCESS',
+    `description` VARCHAR(191) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     PRIMARY KEY (`id`)
@@ -184,6 +187,8 @@ CREATE TABLE `DepositAddress` (
     `index_no` INTEGER NOT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
+    UNIQUE INDEX `DepositAddress_user_id_key`(`user_id`),
+    UNIQUE INDEX `DepositAddress_address_key`(`address`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -207,6 +212,7 @@ CREATE TABLE `Investment` (
     `user_id` VARCHAR(191) NOT NULL,
     `plan_id` VARCHAR(191) NOT NULL,
     `amount` DECIMAL(65, 30) NOT NULL,
+    `remaining_principal` DECIMAL(65, 30) NOT NULL,
     `monthly_interest_rate` DECIMAL(65, 30) NOT NULL,
     `start_date` DATETIME(3) NOT NULL,
     `status` VARCHAR(191) NULL,
@@ -220,6 +226,7 @@ CREATE TABLE `DepositSubmission` (
     `id` VARCHAR(191) NOT NULL,
     `user_id` VARCHAR(191) NOT NULL,
     `amount` DECIMAL(65, 30) NOT NULL,
+    `type` VARCHAR(191) NOT NULL DEFAULT 'DEPOSIT',
     `tx_hash` VARCHAR(191) NOT NULL,
     `deposit_address` VARCHAR(191) NOT NULL,
     `screenshot` VARCHAR(191) NULL,
@@ -227,6 +234,20 @@ CREATE TABLE `DepositSubmission` (
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     UNIQUE INDEX `DepositSubmission_tx_hash_key`(`tx_hash`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `BlockchainDeposit` (
+    `id` VARCHAR(191) NOT NULL,
+    `tx_hash` VARCHAR(191) NOT NULL,
+    `from_addr` VARCHAR(191) NOT NULL,
+    `to_addr` VARCHAR(191) NOT NULL,
+    `amount` DECIMAL(65, 30) NOT NULL,
+    `confirmations` INTEGER NOT NULL,
+    `is_used` BOOLEAN NOT NULL DEFAULT false,
+
+    UNIQUE INDEX `BlockchainDeposit_tx_hash_key`(`tx_hash`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

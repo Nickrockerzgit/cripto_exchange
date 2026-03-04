@@ -2,6 +2,7 @@ import express from 'express';
 import {
   register,
   verifyEmail,
+  resendOTP,
   login,
   verify2FA,
   enable2FA,
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.post('/register', register);
 router.post('/verify-email', verifyEmail);
+router.post('/resend-otp', resendOTP);
 router.post('/login', login);
 router.post('/verify-2fa', verify2FA);
 router.post('/enable-2fa', authMiddleware, enable2FA);

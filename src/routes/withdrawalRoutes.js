@@ -9,6 +9,9 @@ router.use(protect);
 // Get withdrawal statistics
 router.get('/stats', withdrawalController.getWithdrawalStats);
 
+// Request withdrawal
+router.post('/request', withdrawalController.requestWithdrawal);
+
 // Process principal withdrawals (Admin only - should add admin middleware)
 router.post('/process-principal', withdrawalController.processPrincipalWithdrawals);
 

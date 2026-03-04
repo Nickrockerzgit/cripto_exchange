@@ -17,9 +17,9 @@ const { TronWeb } = pkg;
 
 const tronWeb = new TronWeb({
   fullHost: "https://nile.trongrid.io",
-  privateKey: process.env.PRIVATE_KEY, // 👈 HOT WALLET load hoga
+  // privateKey: process.env.PRIVATE_KEY, // 👈 Temporarily commented - add valid key to use
   headers: {
-    "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY,
+    "TRON-PRO-API-KEY": process.env.TRONGRID_API_KEY || "",
   },
 });
 

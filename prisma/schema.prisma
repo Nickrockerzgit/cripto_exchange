@@ -17,6 +17,7 @@ model User {
   email         String?  @unique
   phone         String?
   password_hash String?
+    status        String?  @default("PENDING")// PENDING / ACTIVE / BLOCKED
   robot_status        String?  @default("INACTIVE") // ACTIVE / BLOCKED/ InActive
   referral_code String? @unique
   referral_count Int     @default(0)
