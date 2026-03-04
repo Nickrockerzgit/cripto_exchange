@@ -101,6 +101,26 @@ class InvestmentService {
           }
         });
 
+        // Activate referral if this is user's first investment
+        const referral = await tx.referral.findFirst({
+          where: {
+            referred_user_id: userId,
+            activation_status: false
+          }
+        });
+
+        if (referral) {
+          await tx.referral.update({
+            where: { id: referral.id },
+            data: {
+              activation_status: true,
+              bonus_credited: false
+            }
+          });
+
+          console.log(`Referral activated for user ${userId}`);
+        }
+
         return newInvestment;
       });
 
