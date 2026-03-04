@@ -6,6 +6,6 @@ import authenticate from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 // router.post("/submit",  submitDeposit);
-router.post("/submit",  upload.single("screenshot"), submitDeposit);
+router.post("/submit", authenticate, upload.single("screenshot"), submitDeposit);
 
 export default router;
