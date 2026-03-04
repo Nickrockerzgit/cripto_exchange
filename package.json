@@ -26,6 +26,8 @@
     "prisma": "^6.19.2"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1000.0",
+    "@aws-sdk/s3-request-presigner": "^3.1001.0",
     "@ledgerhq/hw-app-trx": "^6.32.0",
     "@ledgerhq/hw-transport-node-hid": "^6.30.0",
     "@prisma/client": "^6.19.2",
@@ -39,6 +41,7 @@
     "jsonwebtoken": "^9.0.3",
     "keccak": "^3.0.4",
     "morgan": "^1.10.1",
+    "multer": "^2.1.0",
     "nanoid": "^3.3.11",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",

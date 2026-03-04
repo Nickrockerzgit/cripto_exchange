@@ -17,7 +17,7 @@ import { createWallet } from './controllers/createwallet.controller.js';
 import robotRoutes from "./routes/robot.routes.js";
 
 import startRobotActivationJob from "./jobs/robotActivation.job.js";
-
+import adminDepositRoutes from "./routes/adminDeposit.routes.js";
 import investmentRoutes from './routes/investmentRoutes.js'
 import withdrawalRoutes from './routes/withdrawalRoutes.js'
 import transferRoutes from './routes/transferRoutes.js'
@@ -92,6 +92,7 @@ app.use("/api/robot", robotRoutes);
 app.use('/api/investments', investmentRoutes)
 app.use('/api/withdrawals', withdrawalRoutes)
 app.use('/api/transfers', transferRoutes)
+app.use("/api/admin", adminDepositRoutes);
 // app.use('/api/wallets', walletRoutes);
 // app.use('/api/transactions', transactionRoutes);
 // ... baaki routes yaha add karte jana
