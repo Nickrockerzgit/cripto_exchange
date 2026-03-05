@@ -68,6 +68,8 @@ class DepositMatcherService {
           data: { is_used: true }
         });
 
+      }, {
+        timeout: 15000 // 15 seconds timeout for deposit matching operations
       });
 
       console.log("✅ Deposit matched & credited:", submission.user_id);

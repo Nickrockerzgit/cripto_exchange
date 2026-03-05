@@ -9,6 +9,7 @@ export const submitDeposit = async (req, res) => {
 
     const { tx_hash, amount } = req.body;
     const userId = req.user.userId; // Get from authenticated user
+    const file = req.file; // Get uploaded file from multer
 
     if (!tx_hash || !amount) {
       return res.status(400).json({
@@ -17,6 +18,12 @@ export const submitDeposit = async (req, res) => {
       });
     }
 
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "Screenshot is required"
+      });
+    }
 
     // Get user's deposit address
     const userDepositAddress = await prisma.depositAddress.findFirst({
@@ -43,7 +50,7 @@ export const submitDeposit = async (req, res) => {
     }
 
     // ✅ Upload screenshot to S3
-    const screenshotKey = await uploadDepositScreenshot(file, user_id);
+    const screenshotKey = await uploadDepositScreenshot(file, userId);
 
     // ✅ Save in DB
     const submission = await prisma.depositSubmission.create({
@@ -52,6 +59,7 @@ export const submitDeposit = async (req, res) => {
         amount: parseFloat(amount),
         deposit_address: userDepositAddress.address,
         tx_hash,
+        screenshot: screenshotKey,
         status: "PENDING",
         type: "DEPOSIT"
       }
