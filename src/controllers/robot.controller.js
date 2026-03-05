@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export const activateRobotController = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const { tx_hash, deposit_address } = req.body;
 
     if (!tx_hash || !deposit_address) {

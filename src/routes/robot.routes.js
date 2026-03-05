@@ -6,6 +6,6 @@ import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-router.post("/activate",  activateRobotController);
+router.post("/activate", authMiddleware,  activateRobotController);
 
 export default router;
