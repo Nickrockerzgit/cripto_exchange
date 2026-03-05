@@ -212,6 +212,8 @@ class DepositScannerService {
             }
           });
 
+        
+
           // Wallet credit
           await tx.wallet.upsert({
             where: { user_id: submission.user_id },
@@ -248,6 +250,8 @@ class DepositScannerService {
             data: { is_used: true }
           });
 
+        }, {
+          timeout: 15000 // 15 seconds timeout for S3 upload + DB operations
         });
 
         console.log("✅ Deposit Credited to:", submission.user_id);
