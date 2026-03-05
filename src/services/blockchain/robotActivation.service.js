@@ -56,6 +56,19 @@ class RobotActivationService {
           data: { is_used: true }
         });
 
+        // 🔥 Log transaction record for robot activation
+        await tx.transaction.create({
+          data: {
+            user_id: submission.user_id,
+            type: "robot_activation",
+            gross_amount: Number(blockchainTx.amount) || 0,
+            net_amount: Number(blockchainTx.amount) || 0,
+            status: "confirmed",
+            reference_id: blockchainTx.tx_hash,
+            description: "Robot activation fee",
+          },
+        });
+
       });
 
       console.log("✅ Robot activated for user:", submission.user_id);
