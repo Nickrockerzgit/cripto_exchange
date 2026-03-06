@@ -28,25 +28,26 @@ async function register(req, res) {
     if (existingUser) {
       return res.status(400).json({ error: 'Email already registered' })
     }
-    const role = await prisma.role.findUnique({
-      where: { role_name: 'USER' },
-    })
-    const referral_rank = await prisma.referralRank.findUnique({
-      where: { rank_name: 'Level 1' },
-    })
+
+    // 1. Parallel fetch role and referral rank
+    const [role, referral_rank] = await Promise.all([
+      prisma.role.findUnique({ where: { role_name: 'USER' } }),
+      prisma.referralRank.findUnique({ where: { rank_name: 'Level 1' } })
+    ]);
 
     if (!role) {
-  throw new Error("USER role not found in database")
-}
+      throw new Error("USER role not found in database")
+    }
 
-if (!referral_rank) {
-  throw new Error("Level 1 referral rank not found in database")
-}
+    if (!referral_rank) {
+      throw new Error("Level 1 referral rank not found in database")
+    }
+
     const password_hash = await bcrypt.hash(password, 10)
     const generatedReferralCode = generateReferralCode()
     const otp = generateOTP()
 
-    // 🔹 Create User
+    // 2. Create User
     const user = await prisma.user.create({
       data: {
         name,
@@ -60,42 +61,33 @@ if (!referral_rank) {
       },
     })
 
-    // 🔹 Generate and assign deposit address
-const lastAddress = await prisma.depositAddress.findFirst({
-  orderBy: {
-    index_no: 'desc'
-  }
-})
-
-const newIndex = lastAddress ? Number(lastAddress.index_no) + 1 : 0
-
-const { address, index } = generateTronAddress(newIndex)
-
-await prisma.depositAddress.create({
-  data: {
-    user_id: user.id,
-    address: address,
-    index_no: index
-  }
-})
-
-    //  Create Wallet
-    await prisma.wallet.create({
-      data: { user_id: user.id },
+    // 3. Generate and assign deposit address
+    const lastAddress = await prisma.depositAddress.findFirst({
+      orderBy: {
+        index_no: 'desc'
+      }
     })
 
-    //creating role
-    await prisma.userRole.create({
-      data: { user_id: user.id, role_id: role.id },
-    })
+    const newIndex = lastAddress ? Number(lastAddress.index_no) + 1 : 0
+    const { address, index } = generateTronAddress(newIndex)
 
-    // 🔹 Handle Referral via Service
+    // 4. Create wallet, deposit address, and user role in parallel
+    await Promise.all([
+      prisma.wallet.create({ data: { user_id: user.id } }),
+      prisma.depositAddress.create({ data: { user_id: user.id, address: address, index_no: index } }),
+      prisma.userRole.create({ data: { user_id: user.id, role_id: role.id } })
+    ]);
+
+    // 5. Handle Referral via Service
     await handleReferralOnRegister(referralCodeFromParam, user.id)
 
-    console.log("address",address);
+    console.log("address", address);
 
+    // 6. Send email in background (non-blocking)
     const html = emailVerificationTemplate(otp)
-    await sendEmail(email, "Verify Your Email", html);
+    sendEmail(email, "Verify Your Email", html).catch(err => 
+      console.error('Email send failed:', err)
+    );
 
     res.status(201).json({
       message: 'User registered. Verify email with OTP.',
