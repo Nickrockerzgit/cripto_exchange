@@ -58,3 +58,33 @@ export const getAllDepositsForAdmin = async (req, res) => {
 
   }
 };
+
+export const getDepositeAddress = async (req, res) => {
+  try {
+    // Since there's only one admin, fetch the first admin
+    const admin = await prisma.admin.findFirst({
+      select: {
+        depositAddress: true
+      }
+    });
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found"
+      });
+    }
+
+    return res.json({
+      success: true,
+      depositAddress: admin.depositAddress
+    });
+
+  } catch (error) {
+    console.error("Error fetching admin deposit address:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

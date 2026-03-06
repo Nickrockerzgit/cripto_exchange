@@ -98,42 +98,6 @@ async function checkAndUpgradeRank(userId) {
   // 🔹 STEP 2: REWARD LOGIC
   // ===============================
 
-  // Reward only when user completes THIS level requirement
-  if (user.referral_count >= currentRank.required_referrals) {
-    const alreadyRewarded = await prisma.referralRankHistory.findUnique({
-      where: {
-        user_id_rank_id: {
-          user_id: userId,
-          rank_id: currentRank.id,
-        },
-      },
-    })
-
-    if (!alreadyRewarded) {
-      // Reward wallet
-      await prisma.wallet.update({
-        where: { user_id: userId },
-        data: {
-          referral_balance: {
-            increment: currentRank.reward_amount,
-          },
-          main_balance: {
-            increment: currentRank.reward_amount,
-          },
-        },
-      })
-
-      // Save reward history
-      await prisma.referralRankHistory.create({
-        data: {
-          user_id: userId,
-          rank_id: currentRank.id,
-          reward_paid: currentRank.reward_amount,
-        },
-      })
-    }
-  }
-
   return { success: true }
 }
 export const getAllRefralsByUserId = async (req, res) => {
