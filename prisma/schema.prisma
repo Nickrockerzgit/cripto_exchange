@@ -1,65 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-//////////////////////////////////////////////////////
-// ================= USERS ===========================
-//////////////////////////////////////////////////////
-
 model User {
-  id            String   @id @default(uuid())
-  name          String?
-  email         String?  @unique
-  phone         String?
-  password_hash String?
-    status        String?  @default("PENDING")// PENDING / ACTIVE / BLOCKED
-  robot_status        String?  @default("INACTIVE") // ACTIVE / BLOCKED/ InActive
-  referral_code String? @unique
-  referral_count Int     @default(0)
-  referral_rank_id String? 
-  created_at    DateTime @default(now())
-
- deposit_address String @default("tg")
-
-  // 🔐 Email Verification
-  is_email_verified  Boolean @default(false)
-  email_verify_token String? @unique
-
-  // 🔐 2FA
-  two_factor_enabled Boolean @default(false)
-  two_factor_secret  String?
-
-  // 🔐 Security
-  login_attempts Int       @default(0)
-  lock_until     DateTime?
-  refresh_token  String? @db.Text
-  // Relations
-  roles            UserRole[]
-  wallets          Wallet[]
-  transactions     Transaction[]
-  deposits         Deposit[]
-  withdrawals      Withdrawal[]
-  investments      Investment[]
-  depositAddresses DepositAddress[]
-  userRanks        UserRank[]
-
-  referralsGiven   Referral[] @relation("ReferrerRelation")
+  id                  String                @id @default(uuid())
+  name                String?
+  email               String?               @unique
+  phone               String?
+  password_hash       String?
+  status              String?               @default("PENDING")
+  robot_status        String?               @default("INACTIVE")
+  referral_code       String?               @unique
+  referral_count      Int                   @default(0)
+  referral_rank_id    String?
+  created_at          DateTime              @default(now())
+  deposit_address     String                @default("tg")
+  is_email_verified   Boolean               @default(false)
+  email_verify_token  String?               @unique
+  two_factor_enabled  Boolean               @default(false)
+  two_factor_secret   String?
+  login_attempts      Int                   @default(0)
+  lock_until          DateTime?
+  refresh_token       String?               @db.Text
+  deposits            Deposit[]
+  depositAddresses    DepositAddress?
+  depositSubmissions  DepositSubmission[]
+  receivedTransfers   InternalTransfer[]    @relation("ReceiverRelation")
+  sentTransfers       InternalTransfer[]    @relation("SenderRelation")
+  investments         Investment[]
+  referralReceived    Referral?             @relation("ReferredRelation")
+  referralsGiven      Referral[]            @relation("ReferrerRelation")
   referralRankHistory ReferralRankHistory[]
-  referralReceived Referral[] @relation("ReferredRelation")
-  referralRank      ReferralRank? @relation(fields: [referral_rank_id], references: [id])
-  sentTransfers     InternalTransfer[] @relation("SenderRelation")
-  receivedTransfers InternalTransfer[] @relation("ReceiverRelation")
-  depositSubmissions DepositSubmission[]
-}
+  transactions        Transaction[]
+  referralRank        ReferralRank?         @relation(fields: [referral_rank_id], references: [id])
+  userRanks           UserRank[]
+  roles               UserRole[]
+  wallets             Wallet?
+  withdrawals         Withdrawal[]
 
-//////////////////////////////////////////////////////
-// ================= ROLES ===========================
-//////////////////////////////////////////////////////
+  @@index([referral_rank_id], map: "User_referral_rank_id_fkey")
+}
 
 model Role {
   id        String     @id @default(uuid())
@@ -71,25 +56,22 @@ model UserRole {
   id      String @id @default(uuid())
   user_id String
   role_id String
+  role    Role   @relation(fields: [role_id], references: [id])
+  user    User   @relation(fields: [user_id], references: [id])
 
-  user User @relation(fields: [user_id], references: [id])
-  role Role @relation(fields: [role_id], references: [id])
+  @@index([role_id], map: "UserRole_role_id_fkey")
+  @@index([user_id], map: "UserRole_user_id_fkey")
 }
-
-//////////////////////////////////////////////////////
-// ================= WALLET ==========================
-//////////////////////////////////////////////////////
 
 model Wallet {
   id                 String   @id @default(uuid())
   user_id            String   @unique
-  main_balance       Decimal  @default(0)
-  investment_balance Decimal  @default(0)
-  profit_balance     Decimal  @default(0)
-  referral_balance   Decimal  @default(0)
+  main_balance       Decimal  @default(0.000000000000000000000000000000)
+  investment_balance Decimal  @default(0.000000000000000000000000000000)
+  profit_balance     Decimal  @default(0.000000000000000000000000000000)
+  referral_balance   Decimal  @default(0.000000000000000000000000000000)
   updated_at         DateTime @updatedAt
-
-  user User @relation(fields: [user_id], references: [id])
+  user               User     @relation(fields: [user_id], references: [id])
 }
 
 model Transaction {
@@ -106,13 +88,10 @@ model Transaction {
   reference_id       String?
   description        String?
   created_at         DateTime @default(now())
+  user               User     @relation(fields: [user_id], references: [id])
 
-  user User @relation(fields: [user_id], references: [id])
+  @@index([user_id], map: "Transaction_user_id_fkey")
 }
-
-//////////////////////////////////////////////////////
-// ================= DEPOSIT / WITHDRAW =============
-//////////////////////////////////////////////////////
 
 model Deposit {
   id              String   @id @default(uuid())
@@ -124,106 +103,98 @@ model Deposit {
   deposit_address String?
   sweep_status    String?
   created_at      DateTime @default(now())
+  user            User     @relation(fields: [user_id], references: [id])
 
-  user User @relation(fields: [user_id], references: [id])
+  @@index([user_id], map: "Deposit_user_id_fkey")
 }
 
 model Withdrawal {
   id                 String    @id @default(uuid())
   user_id            String
-  type               String?   // PROFIT / PRINCIPAL
+  type               String?
   requested_amount   Decimal
   platform_fee       Decimal?
   penalty_fee        Decimal?
   net_amount         Decimal?
-  status             String?   // PENDING / PROCESSING / COMPLETED / REJECTED
+  status             String?
   ticket_raised_date DateTime?
   processed_at       DateTime?
   created_at         DateTime  @default(now())
+  user_address       String?
+  user               User      @relation(fields: [user_id], references: [id])
 
-  user User @relation(fields: [user_id], references: [id])
+  @@index([user_id], map: "Withdrawal_user_id_fkey")
 }
 
-//////////////////////////////////////////////////////
-// ================= REFERRALS =======================
-//////////////////////////////////////////////////////
-
 model Referral {
-  id               String   @id @default(uuid())
-  referrer_id      String
-  referred_user_id String   @unique
-
+  id                String   @id @default(uuid())
+  referrer_id       String
+  referred_user_id  String   @unique
   activation_status Boolean  @default(false)
   bonus_credited    Boolean  @default(false)
   created_at        DateTime @default(now())
+  referred          User     @relation("ReferredRelation", fields: [referred_user_id], references: [id])
+  referrer          User     @relation("ReferrerRelation", fields: [referrer_id], references: [id])
 
-  referrer User @relation("ReferrerRelation", fields: [referrer_id], references: [id])
-  referred User @relation("ReferredRelation", fields: [referred_user_id], references: [id])
+  @@index([referrer_id], map: "Referral_referrer_id_fkey")
 }
 
-
 model ReferralRank {
-  id                 String @id @default(uuid())
-  rank_name          String @unique
+  id                 String                @id @default(uuid())
+  rank_name          String                @unique
   required_referrals Int
   reward_amount      Decimal
-  referralUsers      User[]
   rankHistory        ReferralRankHistory[]
+  referralUsers      User[]
 }
 
 model InvestmentRank {
-  id                   String @id @default(uuid())
-  rank_name            String @unique
-  required_investment  Decimal
-  created_at           DateTime @default(now())
-  userRanks            UserRank[]
+  id                  String     @id @default(uuid())
+  rank_name           String     @unique
+  required_investment Decimal
+  created_at          DateTime   @default(now())
+  userRanks           UserRank[]
 }
 
-
 model ReferralRankHistory {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   user_id     String
   rank_id     String
   reward_paid Decimal
-  assigned_at DateTime @default(now())
+  assigned_at DateTime     @default(now())
+  rank        ReferralRank @relation(fields: [rank_id], references: [id])
+  user        User         @relation(fields: [user_id], references: [id])
 
-  user User           @relation(fields: [user_id], references: [id])
-  rank ReferralRank   @relation(fields: [rank_id], references: [id])
-
-  @@unique([user_id, rank_id]) 
+  @@unique([user_id, rank_id])
+  @@index([rank_id], map: "ReferralRankHistory_rank_id_fkey")
 }
-
 
 model UserRank {
-  id          String   @id @default(uuid())
+  id          String         @id @default(uuid())
   user_id     String
   rank_id     String
-  assigned_at DateTime @default(now())
+  assigned_at DateTime       @default(now())
+  rank        InvestmentRank @relation(fields: [rank_id], references: [id])
+  user        User           @relation(fields: [user_id], references: [id])
 
-  user User         @relation(fields: [user_id], references: [id])
-  rank InvestmentRank  @relation(fields: [rank_id], references: [id])
+  @@index([rank_id], map: "UserRank_rank_id_fkey")
+  @@index([user_id], map: "UserRank_user_id_fkey")
 }
-
-//////////////////////////////////////////////////////
-// ================= INTERNAL TRANSFER ===============
-//////////////////////////////////////////////////////
 
 model InternalTransfer {
   id          String   @id @default(uuid())
   sender_id   String
   receiver_id String
   amount      Decimal
-  status      String   @default("SUCCESS") // SUCCESS / FAILED
+  status      String   @default("SUCCESS")
   description String?
   created_at  DateTime @default(now())
+  receiver    User     @relation("ReceiverRelation", fields: [receiver_id], references: [id])
+  sender      User     @relation("SenderRelation", fields: [sender_id], references: [id])
 
-  sender   User @relation("SenderRelation", fields: [sender_id], references: [id])
-  receiver User @relation("ReceiverRelation", fields: [receiver_id], references: [id])
+  @@index([receiver_id], map: "InternalTransfer_receiver_id_fkey")
+  @@index([sender_id], map: "InternalTransfer_sender_id_fkey")
 }
-
-//////////////////////////////////////////////////////
-// ================= DEPOSIT ADDRESS =================
-//////////////////////////////////////////////////////
 
 model DepositAddress {
   id         String   @id @default(uuid())
@@ -231,66 +202,69 @@ model DepositAddress {
   address    String   @unique
   index_no   Int
   created_at DateTime @default(now())
-
-  user User @relation(fields: [user_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
 }
 
-//////////////////////////////////////////////////////
-// ================= INVESTMENT ======================
-//////////////////////////////////////////////////////
-
 model InvestmentPlan {
-  id           String   @id @default(uuid())
-  name         String   @unique
+  id           String       @id @default(uuid())
+  name         String       @unique
   min_amount   Decimal
   max_amount   Decimal?
   min_interest Decimal
   max_interest Decimal
-  created_at   DateTime @default(now())
-
-  investments Investment[]
+  created_at   DateTime     @default(now())
+  investments  Investment[]
 }
 
 model Investment {
-  id                    String   @id @default(uuid())
+  id                    String         @id @default(uuid())
   user_id               String
-  plan_id               String 
+  plan_id               String
   amount                Decimal
   remaining_principal   Decimal
   monthly_interest_rate Decimal
   start_date            DateTime
-  status                String?  // ACTIVE / COMPLETED / CANCELLED
-  created_at            DateTime @default(now())
+  status                String?
+  created_at            DateTime       @default(now())
+  plan                  InvestmentPlan @relation(fields: [plan_id], references: [id])
+  user                  User           @relation(fields: [user_id], references: [id])
 
-  user User           @relation(fields: [user_id], references: [id])
-  plan InvestmentPlan @relation(fields: [plan_id], references: [id])
+  @@index([plan_id], map: "Investment_plan_id_fkey")
+  @@index([user_id], map: "Investment_user_id_fkey")
 }
-
-
-
-// Deposite submission 
 
 model DepositSubmission {
-  id          String   @id @default(uuid())
-  user_id     String
-  amount      Decimal
-  type       String @default("DEPOSIT")//Robot-Activation 
-  tx_hash     String   @unique
+  id              String   @id @default(uuid())
+  user_id         String
+  amount          Decimal
+  type            String   @default("DEPOSIT")
+  tx_hash         String   @unique
   deposit_address String
-  screenshot  String?
-  status      String   @default("PENDING")
-  created_at  DateTime @default(now())
+  screenshot      String?
+  status          String   @default("PENDING")
+  created_at      DateTime @default(now())
+  user            User     @relation(fields: [user_id], references: [id])
 
-  user User @relation(fields: [user_id], references: [id])
+  @@index([user_id], map: "DepositSubmission_user_id_fkey")
 }
 
-
 model BlockchainDeposit {
-  id            String   @id @default(uuid())
-  tx_hash       String   @unique
+  id            String  @id @default(uuid())
+  tx_hash       String  @unique
   from_addr     String
   to_addr       String
   amount        Decimal
-  confirmations Int // pending /confirmed 
-  is_used       Boolean  @default(false)
+  confirmations Int
+  is_used       Boolean @default(false)
+}
+
+model Admin {
+  id             String   @id @default(uuid())
+  name           String?
+  email          String?  @unique
+  password_hash  String?
+  login_attempts Int      @default(0)
+  refresh_token  String?  @db.Text
+  depositAddress String   @unique @default("TRRBEAZp1UhHd3W5sKHfpWjxk77WjargVg")
+  created_at     DateTime @default(now())
 }
