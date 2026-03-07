@@ -20,7 +20,7 @@ async function register(req, res) {
     const { name, email, phone, password } = req.body
     const referralCodeFromParam = req.query.ref
 
-    const [ existingUser, referral_rank] = await Promise.all([
+    const [ referral_rank,existingUser] = await Promise.all([
       prisma.referralRank.findUnique({ where: { rank_name: 'Level 1' } }),
       prisma.user.findUnique({
       where: { email }
