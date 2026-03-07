@@ -37,6 +37,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:8081',
+  'https://fintech-gold-psi.vercel.app',
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [])
 ];
 
