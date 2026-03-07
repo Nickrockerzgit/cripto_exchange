@@ -20,7 +20,7 @@ async function register(req, res) {
     const { name, email, phone, password } = req.body
     const referralCodeFromParam = req.query.ref
 
-    const [ referral_rank, existingUser] = await Promise.all([
+    const [ existingUser, referral_rank] = await Promise.all([
       prisma.referralRank.findUnique({ where: { rank_name: 'Level 1' } }),
       prisma.user.findUnique({
       where: { email }
@@ -143,15 +143,15 @@ async function login(req, res) {
   const isMatch = await bcrypt.compare(password, user.password_hash)
   if (!isMatch) {
     // Increment login attempts
-    await prisma.user.update({
+     prisma.user.update({
       where: { email },
       data: { login_attempts: { increment: 1 } },
     })
-    return res.status(400).json({ error: 'Invalid credentials' })
+    return res.status(401).json({ error: 'Invalid credentials' })
   }
 
   // Reset attempts
-  await prisma.user.update({
+   prisma.user.update({
     where: { email },
     data: { login_attempts: 0 },
   })
@@ -159,7 +159,7 @@ async function login(req, res) {
   // If 2FA enabled, send alert and require 2FA
   if (user.two_factor_enabled) {
     const html = twoFactorLoginTemplate()
-    await sendEmail(email, '2FA Login Attempt', html)
+     sendEmail(email, '2FA Login Attempt', html)
     // Generate a temp token for 2FA step
     const tempToken = jwt.sign(
       { userId: user.id, step: '2fa' },
@@ -180,7 +180,7 @@ async function login(req, res) {
   )
 
   // Save refresh token
-  await prisma.user.update({
+   prisma.user.update({
     where: { id: user.id },
     data: { refresh_token: refreshToken },
   })
