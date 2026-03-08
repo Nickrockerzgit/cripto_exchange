@@ -21,10 +21,13 @@ const transporter = nodemailer.createTransport({
     // Do not fail on invalid certs for ProtonMail
     rejectUnauthorized: false,
   },
-  // Connection timeout
-  connectionTimeout: 10000,
-  // Socket timeout
-  socketTimeout: 10000,
+  // Connection timeout - reduced for faster failure in production
+  connectionTimeout: 5000, // 5 seconds
+  // Socket timeout - reduced for faster failure in production  
+  socketTimeout: 5000, // 5 seconds
+  // Retry attempts
+  pool: true,
+  maxConnections: 5,
 });
 
 // Verify connection configuration on startup
