@@ -1,5 +1,7 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+function getPrisma() {
+  if (!globalThis.prisma) throw new Error("PrismaClient not initialized");
+  return globalThis.prisma;
+}
 
 class InvestmentService {
   /**
@@ -10,7 +12,7 @@ class InvestmentService {
    */
   calculateMonthlyPercentage(amount) {
     const numAmount = parseFloat(amount);
-    
+
     if (numAmount <= 10000) {
       return 7;
     } else if (numAmount <= 25000) {
@@ -27,11 +29,11 @@ class InvestmentService {
     try {
       // Validate investment plan
       const plan = await prisma.investmentPlan.findUnique({
-        where: { id: planId }
+        where: { id: planId },
       });
 
       if (!plan) {
-        throw new Error('Invalid investment plan');
+        throw new Error("Invalid investment plan");
       }
 
       // Check if amount is within plan limits
@@ -46,16 +48,16 @@ class InvestmentService {
 
       // Get user wallet
       const wallet = await prisma.wallet.findUnique({
-        where: { user_id: userId }
+        where: { user_id: userId },
       });
 
       if (!wallet) {
-        throw new Error('Wallet not found');
+        throw new Error("Wallet not found");
       }
 
       // Check if user has sufficient balance
       if (parseFloat(wallet.investment_balance) < numAmount) {
-        throw new Error('Insufficient investment balance');
+        throw new Error("Insufficient investment balance");
       }
 
       // Calculate monthly percentage based on tier
@@ -68,9 +70,9 @@ class InvestmentService {
           where: { user_id: userId },
           data: {
             investment_balance: {
-              decrement: amount
-            }
-          }
+              decrement: amount,
+            },
+          },
         });
 
         // Create investment record
@@ -82,31 +84,31 @@ class InvestmentService {
             remaining_principal: amount,
             monthly_interest_rate: monthlyPercentage,
             start_date: new Date(),
-            status: 'ACTIVE'
-          }
+            status: "ACTIVE",
+          },
         });
 
         // Create transaction record
         await tx.transaction.create({
           data: {
             user_id: userId,
-            type: 'INVESTMENT',
-            source_wallet: 'INVESTMENT_BALANCE',
-            destination_wallet: 'INVESTMENT',
+            type: "INVESTMENT",
+            source_wallet: "INVESTMENT_BALANCE",
+            destination_wallet: "INVESTMENT",
             gross_amount: amount,
             net_amount: amount,
-            status: 'COMPLETED',
+            status: "COMPLETED",
             reference_id: newInvestment.id,
-            description: `Investment created with ${monthlyPercentage}% monthly interest`
-          }
+            description: `Investment created with ${monthlyPercentage}% monthly interest`,
+          },
         });
 
         // Activate referral if this is user's first investment
         const referral = await tx.referral.findFirst({
           where: {
             referred_user_id: userId,
-            activation_status: false
-          }
+            activation_status: false,
+          },
         });
 
         if (referral) {
@@ -114,8 +116,8 @@ class InvestmentService {
             where: { id: referral.id },
             data: {
               activation_status: true,
-              bonus_credited: false
-            }
+              bonus_credited: false,
+            },
           });
 
           console.log(`Referral activated for user ${userId}`);
@@ -136,7 +138,7 @@ class InvestmentService {
   async getUserInvestments(userId, status = null) {
     try {
       const where = { user_id: userId };
-      
+
       if (status) {
         where.status = status;
       }
@@ -144,11 +146,11 @@ class InvestmentService {
       const investments = await prisma.investment.findMany({
         where,
         include: {
-          plan: true
+          plan: true,
         },
         orderBy: {
-          created_at: 'desc'
-        }
+          created_at: "desc",
+        },
       });
 
       return investments;
@@ -165,15 +167,15 @@ class InvestmentService {
       const investment = await prisma.investment.findFirst({
         where: {
           id: investmentId,
-          user_id: userId
+          user_id: userId,
         },
         include: {
-          plan: true
-        }
+          plan: true,
+        },
       });
 
       if (!investment) {
-        throw new Error('Investment not found');
+        throw new Error("Investment not found");
       }
 
       return investment;
@@ -190,21 +192,25 @@ class InvestmentService {
     try {
       const activeInvestments = await prisma.investment.findMany({
         where: {
-          status: 'ACTIVE',
+          status: "ACTIVE",
           remaining_principal: {
-            gt: 0
-          }
-        }
+            gt: 0,
+          },
+        },
       });
 
-      console.log(`Processing daily interest for ${activeInvestments.length} investments`);
+      console.log(
+        `Processing daily interest for ${activeInvestments.length} investments`,
+      );
 
       const results = [];
 
       for (const investment of activeInvestments) {
         try {
-          const dailyRate = parseFloat(investment.monthly_interest_rate) / 30 / 100;
-          const dailyInterest = parseFloat(investment.remaining_principal) * dailyRate;
+          const dailyRate =
+            parseFloat(investment.monthly_interest_rate) / 30 / 100;
+          const dailyInterest =
+            parseFloat(investment.remaining_principal) * dailyRate;
 
           // Add to profit wallet
           await prisma.$transaction(async (tx) => {
@@ -212,24 +218,24 @@ class InvestmentService {
               where: { user_id: investment.user_id },
               data: {
                 profit_balance: {
-                  increment: dailyInterest
-                }
-              }
+                  increment: dailyInterest,
+                },
+              },
             });
 
             // Log transaction
             await tx.transaction.create({
               data: {
                 user_id: investment.user_id,
-                type: 'DAILY_INTEREST',
-                source_wallet: 'INVESTMENT',
-                destination_wallet: 'PROFIT_BALANCE',
+                type: "DAILY_INTEREST",
+                source_wallet: "INVESTMENT",
+                destination_wallet: "PROFIT_BALANCE",
                 gross_amount: dailyInterest,
                 net_amount: dailyInterest,
-                status: 'COMPLETED',
+                status: "COMPLETED",
                 reference_id: investment.id,
-                description: `Daily interest credited: ${dailyInterest.toFixed(2)} (Rate: ${investment.monthly_interest_rate}%)`
-              }
+                description: `Daily interest credited: ${dailyInterest.toFixed(2)} (Rate: ${investment.monthly_interest_rate}%)`,
+              },
             });
           });
 
@@ -237,15 +243,18 @@ class InvestmentService {
             investmentId: investment.id,
             userId: investment.user_id,
             dailyInterest,
-            success: true
+            success: true,
           });
         } catch (error) {
-          console.error(`Error processing investment ${investment.id}:`, error.message);
+          console.error(
+            `Error processing investment ${investment.id}:`,
+            error.message,
+          );
           results.push({
             investmentId: investment.id,
             userId: investment.user_id,
             error: error.message,
-            success: false
+            success: false,
           });
         }
       }
@@ -262,17 +271,17 @@ class InvestmentService {
   async withdrawProfit(userId, amount) {
     try {
       const wallet = await prisma.wallet.findUnique({
-        where: { user_id: userId }
+        where: { user_id: userId },
       });
 
       if (!wallet) {
-        throw new Error('Wallet not found');
+        throw new Error("Wallet not found");
       }
 
       const numAmount = parseFloat(amount);
-      
+
       if (parseFloat(wallet.profit_balance) < numAmount) {
-        throw new Error('Insufficient profit balance');
+        throw new Error("Insufficient profit balance");
       }
 
       const withdrawal = await prisma.$transaction(async (tx) => {
@@ -281,36 +290,36 @@ class InvestmentService {
           where: { user_id: userId },
           data: {
             profit_balance: {
-              decrement: amount
-            }
-          }
+              decrement: amount,
+            },
+          },
         });
 
         // Create withdrawal record
         const newWithdrawal = await tx.withdrawal.create({
           data: {
             user_id: userId,
-            type: 'PROFIT',
+            type: "PROFIT",
             requested_amount: amount,
             net_amount: amount,
-            status: 'PENDING',
-            ticket_raised_date: new Date()
-          }
+            status: "PENDING",
+            ticket_raised_date: new Date(),
+          },
         });
 
         // Create transaction record
         await tx.transaction.create({
           data: {
             user_id: userId,
-            type: 'PROFIT_WITHDRAWAL',
-            source_wallet: 'PROFIT_BALANCE',
-            destination_wallet: 'EXTERNAL',
+            type: "PROFIT_WITHDRAWAL",
+            source_wallet: "PROFIT_BALANCE",
+            destination_wallet: "EXTERNAL",
             gross_amount: amount,
             net_amount: amount,
-            status: 'PENDING',
+            status: "PENDING",
             reference_id: newWithdrawal.id,
-            description: 'Profit withdrawal requested'
-          }
+            description: "Profit withdrawal requested",
+          },
         });
 
         return newWithdrawal;
@@ -332,7 +341,9 @@ class InvestmentService {
       const dayOfMonth = today.getDate();
 
       if (dayOfMonth !== 28) {
-        throw new Error('Principal withdrawal is only allowed on the 28th of each month');
+        throw new Error(
+          "Principal withdrawal is only allowed on the 28th of each month",
+        );
       }
 
       // Check if user already has a pending principal withdrawal this month
@@ -344,34 +355,36 @@ class InvestmentService {
       const existingWithdrawal = await prisma.withdrawal.findFirst({
         where: {
           user_id: userId,
-          type: 'PRINCIPAL',
+          type: "PRINCIPAL",
           created_at: {
             gte: startOfMonth,
-            lte: endOfMonth
-          }
-        }
+            lte: endOfMonth,
+          },
+        },
       });
 
       if (existingWithdrawal) {
-        throw new Error('You already have a principal withdrawal request for this month');
+        throw new Error(
+          "You already have a principal withdrawal request for this month",
+        );
       }
 
       // Get all active investments ordered by start_date (FIFO)
       const investments = await prisma.investment.findMany({
         where: {
           user_id: userId,
-          status: 'ACTIVE',
+          status: "ACTIVE",
           remaining_principal: {
-            gt: 0
-          }
+            gt: 0,
+          },
         },
         orderBy: {
-          start_date: 'asc'
-        }
+          start_date: "asc",
+        },
       });
 
       if (investments.length === 0) {
-        throw new Error('No active investments found');
+        throw new Error("No active investments found");
       }
 
       // Calculate total remaining principal
@@ -382,7 +395,9 @@ class InvestmentService {
       const numAmount = parseFloat(amount);
 
       if (numAmount > totalPrincipal) {
-        throw new Error(`Withdrawal amount exceeds total remaining principal (${totalPrincipal})`);
+        throw new Error(
+          `Withdrawal amount exceeds total remaining principal (${totalPrincipal})`,
+        );
       }
 
       // Process FIFO withdrawal
@@ -393,8 +408,13 @@ class InvestmentService {
         for (const investment of investments) {
           if (remainingToWithdraw <= 0) break;
 
-          const investmentPrincipal = parseFloat(investment.remaining_principal);
-          const deductAmount = Math.min(remainingToWithdraw, investmentPrincipal);
+          const investmentPrincipal = parseFloat(
+            investment.remaining_principal,
+          );
+          const deductAmount = Math.min(
+            remainingToWithdraw,
+            investmentPrincipal,
+          );
           const newRemainingPrincipal = investmentPrincipal - deductAmount;
 
           // Update investment
@@ -402,14 +422,14 @@ class InvestmentService {
             where: { id: investment.id },
             data: {
               remaining_principal: newRemainingPrincipal,
-              status: newRemainingPrincipal === 0 ? 'COMPLETED' : 'ACTIVE'
-            }
+              status: newRemainingPrincipal === 0 ? "COMPLETED" : "ACTIVE",
+            },
           });
 
           affectedInvestments.push({
             id: investment.id,
             deducted: deductAmount,
-            newRemaining: newRemainingPrincipal
+            newRemaining: newRemainingPrincipal,
           });
 
           remainingToWithdraw -= deductAmount;
@@ -419,32 +439,32 @@ class InvestmentService {
         const newWithdrawal = await tx.withdrawal.create({
           data: {
             user_id: userId,
-            type: 'PRINCIPAL',
+            type: "PRINCIPAL",
             requested_amount: amount,
             net_amount: amount,
-            status: 'PENDING',
-            ticket_raised_date: new Date()
-          }
+            status: "PENDING",
+            ticket_raised_date: new Date(),
+          },
         });
 
         // Create transaction record
         await tx.transaction.create({
           data: {
             user_id: userId,
-            type: 'PRINCIPAL_WITHDRAWAL',
-            source_wallet: 'INVESTMENT',
-            destination_wallet: 'PENDING_WITHDRAWAL',
+            type: "PRINCIPAL_WITHDRAWAL",
+            source_wallet: "INVESTMENT",
+            destination_wallet: "PENDING_WITHDRAWAL",
             gross_amount: amount,
             net_amount: amount,
-            status: 'PENDING',
+            status: "PENDING",
             reference_id: newWithdrawal.id,
-            description: `Principal withdrawal requested (affects ${affectedInvestments.length} investments)`
-          }
+            description: `Principal withdrawal requested (affects ${affectedInvestments.length} investments)`,
+          },
         });
 
         return {
           withdrawal: newWithdrawal,
-          affectedInvestments
+          affectedInvestments,
         };
       });
 
@@ -462,18 +482,18 @@ class InvestmentService {
       const investments = await prisma.investment.findMany({
         where: {
           user_id: userId,
-          status: 'ACTIVE'
-        }
+          status: "ACTIVE",
+        },
       });
 
       const summary = {
         totalInvested: 0,
         totalRemainingPrincipal: 0,
         activeInvestments: investments.length,
-        investments: []
+        investments: [],
       };
 
-      investments.forEach(inv => {
+      investments.forEach((inv) => {
         summary.totalInvested += parseFloat(inv.amount);
         summary.totalRemainingPrincipal += parseFloat(inv.remaining_principal);
         summary.investments.push({
@@ -481,12 +501,12 @@ class InvestmentService {
           amount: inv.amount,
           remainingPrincipal: inv.remaining_principal,
           monthlyRate: inv.monthly_interest_rate,
-          startDate: inv.start_date
+          startDate: inv.start_date,
         });
       });
 
       const wallet = await prisma.wallet.findUnique({
-        where: { user_id: userId }
+        where: { user_id: userId },
       });
 
       summary.profitBalance = wallet ? wallet.profit_balance : 0;
@@ -504,8 +524,8 @@ class InvestmentService {
     try {
       const plans = await prisma.investmentPlan.findMany({
         orderBy: {
-          min_amount: 'asc'
-        }
+          min_amount: "asc",
+        },
       });
 
       return plans;

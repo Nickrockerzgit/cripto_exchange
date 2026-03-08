@@ -15,18 +15,6 @@
 
 // export default startDepositMatcherJob;
 
-
-
-
-
-
-
-
-
-
-
-
-
 import cron from "node-cron";
 import depositMatcher from "../services/blockchain/matchDeposite.service.js";
 
@@ -35,8 +23,9 @@ let isRunning = false;
 function startDepositMatcherJob() {
   console.log("🧠 Deposit matcher started");
 
+  // ⚠️ CRITICAL FIX: Kept at /* 60 seconds but with proper lock guard
+  // This allows sufficient time for transfers while still matching deposits
   cron.schedule("*/60 * * * * *", async () => {
-
     if (isRunning) {
       console.log("⏳ Matcher already running, skipping...");
       return;
@@ -50,7 +39,6 @@ function startDepositMatcherJob() {
     } finally {
       isRunning = false;
     }
-
   });
 }
 

@@ -1,8 +1,11 @@
-import * as userService from '../services/user.service.js';
-import { successResponse } from '../utils/successResponse.js';
-import { errorResponse } from '../utils/errorResponse.js';
-import { PrismaClient } from '@prisma/client';
-// 🔹 Create User
+import * as userService from "../services/user.service.js";
+import { successResponse } from "../utils/successResponse.js";
+import { errorResponse } from "../utils/errorResponse.js";
+
+function getPrisma() {
+  if (!globalThis.prisma) throw new Error("PrismaClient not initialized");
+  return globalThis.prisma;
+}
 export const createUser = async (req, res) => {
   try {
     if (!req.body.email || !req.body.password_hash) {
@@ -12,7 +15,6 @@ export const createUser = async (req, res) => {
     const user = await userService.createUser(req.body);
 
     return successResponse(res, "User created successfully", user, 201);
-
   } catch (error) {
     console.error("Create User Error:", error);
     return errorResponse(res, "Failed to create user");
@@ -30,7 +32,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-
 // 🔹 Get Single User
 export const getUserById = async (req, res) => {
   try {
@@ -43,13 +44,11 @@ export const getUserById = async (req, res) => {
     if (!user) return errorResponse(res, "User not found", 404);
 
     return successResponse(res, "User fetched successfully", user);
-
   } catch (error) {
     console.error("Get User Error:", error);
     return errorResponse(res, "Failed to fetch user");
   }
 };
-
 
 // 🔹 Update User
 export const updateUser = async (req, res) => {
@@ -61,18 +60,16 @@ export const updateUser = async (req, res) => {
     const user = await userService.updateUser(id, req.body);
 
     return successResponse(res, "User updated successfully", user);
-
   } catch (error) {
     console.error("Update User Error:", error);
 
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return errorResponse(res, "User not found", 404);
     }
 
     return errorResponse(res, "Failed to update user");
   }
 };
-
 
 // 🔹 Delete User
 export const deleteUser = async (req, res) => {
@@ -84,11 +81,10 @@ export const deleteUser = async (req, res) => {
     await userService.deleteUser(id);
 
     return successResponse(res, "User deleted successfully");
-
   } catch (error) {
     console.error("Delete User Error:", error);
 
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return errorResponse(res, "User not found", 404);
     }
 
@@ -115,10 +111,9 @@ function calculateGrowth(current, previous) {
   };
 }
 
-const prisma = new PrismaClient();
-
 async function getWalletBalance(req, res) {
   try {
+    const prisma = getPrisma();
     const userId = req.user.userId;
 
     const wallet = await prisma.wallet.findUnique({
@@ -132,27 +127,27 @@ async function getWalletBalance(req, res) {
     // 🔥 Calculate growth for each field
     const main = calculateGrowth(
       Number(wallet.main_balance),
-      Number(wallet.previous_main_balance)
+      Number(wallet.previous_main_balance),
     );
 
     const active = calculateGrowth(
       Number(wallet.active_deposit),
-      Number(wallet.previous_active_deposit)
+      Number(wallet.previous_active_deposit),
     );
 
     const profit = calculateGrowth(
       Number(wallet.profit_balance),
-      Number(wallet.previous_profit_balance)
+      Number(wallet.previous_profit_balance),
     );
 
     const referral = calculateGrowth(
       Number(wallet.referral_balance),
-      Number(wallet.previous_referral_balance)
+      Number(wallet.previous_referral_balance),
     );
 
     const investment = calculateGrowth(
       Number(wallet.investment_balance),
-      Number(wallet.previous_investment_balance)
+      Number(wallet.previous_investment_balance),
     );
 
     return res.json({
@@ -176,7 +171,6 @@ async function getWalletBalance(req, res) {
       inscrease_percentage_totalInvestment: investment.percentage,
       inscrease_percentage_totalInvestment_positive: investment.positive,
     });
-
   } catch (error) {
     console.error("Wallet error:", error);
     return res.status(500).json({ error: "Server error" });
@@ -185,13 +179,14 @@ async function getWalletBalance(req, res) {
 
 export async function getTransactionHistory(req, res) {
   try {
+    const prisma = getPrisma();
     const userId = req.user.userId;
 
     // Query params
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const type = req.query.type;      // optional filter
-    const status = req.query.status;  // optional filter
+    const type = req.query.type; // optional filter
+    const status = req.query.status; // optional filter
 
     const skip = (page - 1) * limit;
 
@@ -240,10 +235,9 @@ export async function getTransactionHistory(req, res) {
         totalPages: Math.ceil(total / limit),
       },
     });
-
   } catch (error) {
     console.error("Transaction history error:", error);
     return res.status(500).json({ error: "Server error" });
   }
 }
-export  {getWalletBalance};
+export { getWalletBalance };

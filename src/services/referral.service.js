@@ -1,25 +1,25 @@
 // src/services/referral.service.js
-import { nanoid } from 'nanoid';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { nanoid } from "nanoid";
+function getPrisma() {
+  if (!globalThis.prisma) throw new Error("PrismaClient not initialized");
+  return globalThis.prisma;
+}
 
 // 🔹 Create refreal
 async function createReferral(data) {
   return await prisma.referral.create({
-    data
+    data,
   });
 }
 // 🔹 Get All refrealls
 async function getAllUsersRef() {
   return await prisma.referral.findMany({
-    orderBy: { created_at: 'desc' }
+    orderBy: { created_at: "desc" },
   });
 }
 
 async function getReferralsByUserId(userId) {
-
-  if(!userId) throw new Error("User Id is not found "); 
+  if (!userId) throw new Error("User Id is not found ");
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -40,12 +40,12 @@ async function getReferralsByUserId(userId) {
   const totalReferred = user.referralsGiven.length;
 
   // Total bonus
-  const totalBonus = Number ( user.wallets[0]?.referral_balance || 0);
-  
+  const totalBonus = Number(user.wallets[0]?.referral_balance || 0);
+
   // Current rank
   const ranks = await prisma.referralRank.findUnique({
-    where : {id : user.referral_rank_id}
-  })
+    where: { id: user.referral_rank_id },
+  });
   const rank = ranks?.rank_name || "Level 1";
 
   // Next rank
@@ -82,8 +82,4 @@ async function getReferralsByUserId(userId) {
   };
 }
 
-export  {
-  getAllUsersRef,
-  createReferral,
-  getReferralsByUserId
-};
+export { getAllUsersRef, createReferral, getReferralsByUserId };

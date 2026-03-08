@@ -1,4 +1,3 @@
-
 // import tronWeb from "./tronClient.js";
 // import { PrismaClient } from "@prisma/client";
 
@@ -109,35 +108,36 @@
 
 // export default new DepositScannerService();
 import tronWeb from "./tronClient.js";
-import { PrismaClient } from "@prisma/client";
+// ⚠️ DO NOT create a new PrismaClient!
+// Use the global singleton initialized in server.js
 
-const prisma = new PrismaClient();
+function getPrisma() {
+  const globalForPrisma = globalThis;
+  if (!globalForPrisma.prisma) {
+    throw new Error("PrismaClient singleton not initialized");
+  }
+  return globalForPrisma.prisma;
+}
 
 const USDT_CONTRACT = process.env.USDT_CONTRACT;
 const WATCH_ADDRESS = process.env.ADMIN_WALLET;
 
 class DepositScannerService {
-
   async scan() {
     try {
+      const prisma = getPrisma(); // ✅ Get singleton at method start
 
       console.log("🔍 Scanning USDT deposits...");
 
-      const events = await tronWeb.getEventResult(
-        USDT_CONTRACT,
-        {
-          eventName: "Transfer",
-          size: 50,
-          onlyConfirmed: true
-        }
-      );
+      const events = await tronWeb.getEventResult(USDT_CONTRACT, {
+        eventName: "Transfer",
+        size: 50,
+        onlyConfirmed: true,
+      });
 
-      const eventList = Array.isArray(events)
-        ? events
-        : events?.data || [];
+      const eventList = Array.isArray(events) ? events : events?.data || [];
 
       for (const event of eventList) {
-
         const txHash = event.transaction_id;
         const to = tronWeb.address.fromHex(event.result.to);
         const from = tronWeb.address.fromHex(event.result.from);
@@ -150,7 +150,7 @@ class DepositScannerService {
 
         // STEP 1 — Save blockchain deposit (if not already saved)
         const existingBlockchainTx = await prisma.blockchainDeposit.findUnique({
-          where: { tx_hash: txHash }
+          where: { tx_hash: txHash },
         });
 
         if (!existingBlockchainTx) {
@@ -161,21 +161,21 @@ class DepositScannerService {
               to_addr: to,
               amount,
               confirmations: 1,
-              is_used: false
-            }
+              is_used: false,
+            },
           });
 
           console.log("📦 Stored in BlockchainDeposit table");
         }
 
         // STEP 2 — Find matching user submission
-       const submission = await prisma.depositSubmission.findFirst({
-  where: {
-    tx_hash: txHash,
-    status: "PENDING",
-    type: "DEPOSIT"   // 👈 ONLY NORMAL DEPOSITS
-  }
-});
+        const submission = await prisma.depositSubmission.findFirst({
+          where: {
+            tx_hash: txHash,
+            status: "PENDING",
+            type: "DEPOSIT", // 👈 ONLY NORMAL DEPOSITS
+          },
+        });
 
         if (!submission) {
           console.log("⚠ No user submission yet for:", txHash);
@@ -184,7 +184,7 @@ class DepositScannerService {
 
         // STEP 3 — Check blockchain record again
         const blockchainTx = await prisma.blockchainDeposit.findUnique({
-          where: { tx_hash: txHash }
+          where: { tx_hash: txHash },
         });
 
         if (!blockchainTx || blockchainTx.is_used) {
@@ -198,66 +198,63 @@ class DepositScannerService {
           continue;
         }
 
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(
+          async (tx) => {
+            // Deposit record
+            await tx.deposit.create({
+              data: {
+                user_id: submission.user_id,
+                amount,
+                net_amount: amount,
+                blockchain_txid: txHash,
+                deposit_address: to,
+                sweep_status: "CONFIRMED",
+              },
+            });
 
-          // Deposit record
-          await tx.deposit.create({
-            data: {
-              user_id: submission.user_id,
-              amount,
-              net_amount: amount,
-              blockchain_txid: txHash,
-              deposit_address: to,
-              sweep_status: "CONFIRMED"
-            }
-          });
+            // Wallet credit
+            await tx.wallet.upsert({
+              where: { user_id: submission.user_id },
+              update: {
+                main_balance: { increment: amount },
+              },
+              create: {
+                user_id: submission.user_id,
+                main_balance: amount,
+              },
+            });
 
-        
+            // Transaction log
+            await tx.transaction.create({
+              data: {
+                user_id: submission.user_id,
+                type: "deposit",
+                gross_amount: amount,
+                net_amount: amount,
+                status: "confirmed",
+                reference_id: txHash,
+              },
+            });
 
-          // Wallet credit
-          await tx.wallet.upsert({
-            where: { user_id: submission.user_id },
-            update: {
-              main_balance: { increment: amount }
-            },
-            create: {
-              user_id: submission.user_id,
-              main_balance: amount
-            }
-          });
+            // Mark submission confirmed
+            await tx.depositSubmission.update({
+              where: { id: submission.id },
+              data: { status: "CONFIRMED" },
+            });
 
-          // Transaction log
-          await tx.transaction.create({
-            data: {
-              user_id: submission.user_id,
-              type: "deposit",
-              gross_amount: amount,
-              net_amount: amount,
-              status: "confirmed",
-              reference_id: txHash,
-            }
-          });
-
-          // Mark submission confirmed
-          await tx.depositSubmission.update({
-            where: { id: submission.id },
-            data: { status: "CONFIRMED" }
-          });
-
-          // Mark blockchain tx used
-          await tx.blockchainDeposit.update({
-            where: { tx_hash: txHash },
-            data: { is_used: true }
-          });
-
-        }, {
-          timeout: 15000 // 15 seconds timeout for S3 upload + DB operations
-        });
+            // Mark blockchain tx used
+            await tx.blockchainDeposit.update({
+              where: { tx_hash: txHash },
+              data: { is_used: true },
+            });
+          },
+          {
+            timeout: 15000, // 15 seconds timeout for S3 upload + DB operations
+          },
+        );
 
         console.log("✅ Deposit Credited to:", submission.user_id);
-
       }
-
     } catch (err) {
       console.error("❌ Deposit scan error:", err.message);
     }

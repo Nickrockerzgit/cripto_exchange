@@ -1,23 +1,27 @@
 import { PrismaClient } from "@prisma/client";
+import { getPrisma } from "../utils/prismaClient.js";
 
-const prisma = new PrismaClient();
+function getPrismaInstance() {
+  if (!globalThis.prisma) throw new Error("PrismaClient not initialized");
+  return globalThis.prisma;
+}
 
 export const getAllTransactionsForAdmin = async (req, res) => {
   try {
-    // pagination and optional filters
+    const prisma = getPrismaInstance();
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const type = req.query.type;      // optional ("all" means no filter)
-    const status = req.query.status;  // optional ("all" means no filter)
+    const type = req.query.type; // optional ("all" means no filter)
+    const status = req.query.status; // optional ("all" means no filter)
 
     const skip = (page - 1) * limit;
 
     // ignore filters when user passes 'all' or empty string
     const where = {};
-    if (type && type !== 'all') {
+    if (type && type !== "all") {
       where.type = type;
     }
-    if (status && status !== 'all') {
+    if (status && status !== "all") {
       where.status = status;
     }
 
