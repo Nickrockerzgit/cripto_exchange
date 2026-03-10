@@ -61,7 +61,7 @@ async function register(req, res) {
     handleReferralOnRegister(referralCodeFromParam, user.id)
     // 6. Send email in background (non-blocking)
     const html = emailVerificationTemplate(otp)
-    sendEmail(email, "Verify Your Email", html).catch(err => 
+     sendEmail(email, "Verify Your Email", html).catch(err => 
       console.error('Email send failed:', err)
     );
 
