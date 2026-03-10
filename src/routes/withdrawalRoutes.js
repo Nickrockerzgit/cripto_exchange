@@ -2,26 +2,20 @@ import express from 'express';
 const router = express.Router();
 import withdrawalController from '../controllers/withdrawalController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import adminAuthMiddleware from '../middlewares/adminAuthMiddleware.js';
 
-// All routes require authentication
-router.use(protect);
+// USER ROUTES
+router.get('/stats', protect, withdrawalController.getWithdrawalStats);
+router.post('/request', protect, withdrawalController.requestWithdrawal);
+router.get('/', protect, withdrawalController.getUserWithdrawals);
 
-// Get withdrawal statistics
-router.get('/stats', withdrawalController.getWithdrawalStats);
+// ADMIN ROUTES — must be before /:id
+router.get('/admin/pending', adminAuthMiddleware, withdrawalController.getPendingWithdrawals);
+router.post('/admin/:id/approve', adminAuthMiddleware, withdrawalController.approveWithdrawal);
+router.post('/admin/:id/reject', adminAuthMiddleware, withdrawalController.rejectWithdrawal);
 
-// Request withdrawal
-router.post('/request', withdrawalController.requestWithdrawal);
-
-// Process principal withdrawals (Admin only - should add admin middleware)
-router.post('/process-principal', withdrawalController.processPrincipalWithdrawals);
-
-// Get user withdrawals
-router.get('/', withdrawalController.getUserWithdrawals);
-
-// Get single withdrawal
-router.get('/:id', withdrawalController.getWithdrawalById);
-
-// Cancel pending withdrawal
-router.post('/:id/cancel', withdrawalController.cancelWithdrawal);
+// DYNAMIC PARAM ROUTES — always last
+router.get('/:id', protect, withdrawalController.getWithdrawalById);
+router.post('/:id/cancel', protect, withdrawalController.cancelWithdrawal);
 
 export default router;

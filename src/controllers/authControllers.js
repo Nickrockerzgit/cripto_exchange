@@ -17,17 +17,26 @@ const prisma = new PrismaClient()
 
 async function register(req, res) {
   try {
+    console.log('\n' + '='.repeat(60));
+    console.log('🆕 NEW REGISTRATION REQUEST');
+    console.log('='.repeat(60));
     const { name, email, phone, password } = req.body
+    console.log('📝 Registration Data:');
+    console.log('   Name:', name);
+    console.log('   Email:', email);
+    console.log('   Phone:', phone);
     const referralCodeFromParam = req.query.ref
+    console.log('   Referral Code:', referralCodeFromParam || 'None');
+    console.log('='.repeat(60));
 
-    const [ referral_rank,existingUser] = await Promise.all([
+    // Check if user already exists and get referral rank
+    const [referral_rank, existingUser] = await Promise.all([
       prisma.referralRank.findUnique({ where: { rank_name: 'Level 1' } }),
-      prisma.user.findUnique({
-      where: { email }
-      })
+      prisma.user.findUnique({ where: { email } })
     ]);
 
     if (existingUser) {
+      console.log('❌ Email already exists:', email);
       return res.status(400).json({ error: 'Email already registered' })
     }
 
@@ -59,12 +68,23 @@ async function register(req, res) {
 
     // 5. Handle Referral via Service
     handleReferralOnRegister(referralCodeFromParam, user.id)
-    // 6. Send email in background (non-blocking)
+    
+    // 6. Send email with OTP
+    console.log(`📧 Preparing to send OTP email to: ${email}`);
     const html = emailVerificationTemplate(otp)
-     sendEmail(email, "Verify Your Email", html).catch(err => 
-      console.error('Email send failed:', err)
-    );
-
+    const emailResult = await sendEmail(email, "Verify Your Email", html);
+    
+    if (!emailResult.success) {
+      console.error('⚠️ Email sending failed but user created. Email error:', emailResult.error);
+      // User is still created, but we inform them
+      return res.status(201).json({
+        message: 'User registered. Email sending failed - please try resend OTP.',
+        userId: user.id,
+        emailWarning: 'Email could not be sent. Use resend OTP option.',
+      });
+    }
+    
+    console.log(`✅ OTP email sent successfully to: ${email}`);
     res.status(201).json({
       message: 'User registered. Verify email with OTP.',
       userId: user.id,
@@ -119,12 +139,22 @@ async function resendOTP(req, res) {
     })
 
     // Send email with new OTP
+    console.log(`📧 Resending OTP email to: ${email}`);
     const html = emailVerificationTemplate(otp)
-    await sendEmail(email, 'Verify Your Email', html)
-
+    const emailResult = await sendEmail(email, 'Verify Your Email', html)
+    
+    if (!emailResult.success) {
+      console.error('❌ Failed to resend OTP email:', emailResult.error);
+      return res.status(500).json({ 
+        error: 'Failed to send email. Please try again later.',
+        details: emailResult.error 
+      });
+    }
+    
+    console.log(`✅ OTP resent successfully to: ${email}`);
     res.json({ message: 'OTP sent successfully' })
   } catch (error) {
-    console.error(error)
+    console.error('❌ Resend OTP error:', error)
     res.status(500).json({ error: 'Failed to resend OTP' })
   }
 }

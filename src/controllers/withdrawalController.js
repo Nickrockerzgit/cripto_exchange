@@ -2,14 +2,13 @@ import withdrawalService from '../services/withdrawal.service.js';
 import { successResponse } from '../utils/successResponse.js';
 import { errorResponse } from '../utils/errorResponse.js';
 
-class WithdrawalController {
+const withdrawalController = {
   /**
    * Get user withdrawals
    * GET /api/withdrawals
    */
-  async getUserWithdrawals(req, res) {
+  getUserWithdrawals: async (req, res) => {
     try {
-      // const userId = req.user.id;================================================================================================
       const userId = req.user.userId;
       const { type, status } = req.query;
 
@@ -24,16 +23,15 @@ class WithdrawalController {
       console.error('Get withdrawals error:', error);
       return errorResponse(res, error.message, 400);
     }
-  }
+  },
 
   /**
    * Get single withdrawal
    * GET /api/withdrawals/:id
    */
-  async getWithdrawalById(req, res) {
+  getWithdrawalById: async (req, res) => {
     try {
-      // const userId = req.user.id;===========================================================================
-       const userId = req.user.userId;
+      const userId = req.user.userId;
       const { id } = req.params;
 
       const withdrawal = await withdrawalService.getWithdrawalById(id, userId);
@@ -47,53 +45,43 @@ class WithdrawalController {
       console.error('Get withdrawal error:', error);
       return errorResponse(res, error.message, 404);
     }
-  }
+  },
 
   /**
    * Request withdrawal
    * POST /api/withdrawals/request
+   * Body: { type: "PROFIT" | "PRINCIPAL", amount: number, walletAddress: string }
    */
-  async requestWithdrawal(req, res) {
+  requestWithdrawal: async (req, res) => {
     try {
-      // const userId = req.user.id;==============================================================================
-       const userId = req.user.userId;
-      const { type, amount } = req.body;
+      const userId = req.user.userId;
+      const { type, amount, walletAddress } = req.body;
 
-      // Validate input
-      if (!type || !amount) {
-        return errorResponse(res, 'Type and amount are required', 400);
-      }
-
-      if (!['PROFIT', 'PRINCIPAL'].includes(type.toUpperCase())) {
-        return errorResponse(res, 'Invalid withdrawal type', 400);
-      }
-
-      const withdrawal = await withdrawalService.requestWithdrawal(
+      const result = await withdrawalService.requestWithdrawal(
         userId,
-        type.toUpperCase(),
-        amount
+        type,
+        amount,
+        walletAddress
       );
 
       return successResponse(
         res,
         'Withdrawal request submitted successfully',
-        withdrawal,
-        201
+        result
       );
     } catch (error) {
       console.error('Request withdrawal error:', error);
       return errorResponse(res, error.message, 400);
     }
-  }
+  },
 
   /**
    * Get withdrawal statistics
    * GET /api/withdrawals/stats
    */
-  async getWithdrawalStats(req, res) {
+  getWithdrawalStats: async (req, res) => {
     try {
-      // const userId = req.user.id;=============================================================================
-       const userId = req.user.userId;
+      const userId = req.user.userId;
 
       const stats = await withdrawalService.getWithdrawalStats(userId);
 
@@ -106,16 +94,15 @@ class WithdrawalController {
       console.error('Get withdrawal stats error:', error);
       return errorResponse(res, error.message, 400);
     }
-  }
+  },
 
   /**
    * Cancel pending withdrawal
    * POST /api/withdrawals/:id/cancel
    */
-  async cancelWithdrawal(req, res) {
+  cancelWithdrawal: async (req, res) => {
     try {
-      // const userId = req.user.id;=============================================================================
-       const userId = req.user.userId;
+      const userId = req.user.userId;
       const { id } = req.params;
 
       const cancelled = await withdrawalService.cancelWithdrawal(id, userId);
@@ -129,27 +116,72 @@ class WithdrawalController {
       console.error('Cancel withdrawal error:', error);
       return errorResponse(res, error.message, 400);
     }
-  }
+  },
 
   /**
-   * Process principal withdrawals (Admin only)
-   * POST /api/withdrawals/process-principal
+   * Admin: Get all pending withdrawals
+   * GET /api/withdrawals/admin/pending
    */
-  async processPrincipalWithdrawals(req, res) {
+  getPendingWithdrawals: async (req, res) => {
     try {
-      // TODO: Add admin role check middleware
-      const results = await withdrawalService.processPrincipalWithdrawals();
+      const withdrawals = await withdrawalService.getPendingWithdrawals();
 
       return successResponse(
         res,
-        'Principal withdrawals processed successfully',
-        results
+        'Pending withdrawals retrieved successfully',
+        withdrawals
       );
     } catch (error) {
-      console.error('Process principal withdrawals error:', error);
+      console.error('Get pending withdrawals error:', error);
+      return errorResponse(res, error.message, 400);
+    }
+  },
+
+  /**
+   * Admin: Approve withdrawal
+   * POST /api/withdrawals/admin/:id/approve
+   */
+  approveWithdrawal: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const adminId = req.admin?.adminId || req.user?.userId;
+
+      const approved = await withdrawalService.approveWithdrawal(id, adminId);
+
+      return successResponse(
+        res,
+        'Withdrawal approved successfully',
+        approved
+      );
+    } catch (error) {
+      console.error('Approve withdrawal error:', error);
+      return errorResponse(res, error.message, 400);
+    }
+  },
+
+  /**
+   * Admin: Reject withdrawal
+   * POST /api/withdrawals/admin/:id/reject
+   * Body: { reason?: string }
+   */
+  rejectWithdrawal: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const adminId = req.admin?.adminId || req.user?.userId;
+
+      const rejected = await withdrawalService.rejectWithdrawal(id, adminId, reason);
+
+      return successResponse(
+        res,
+        'Withdrawal rejected successfully',
+        rejected
+      );
+    } catch (error) {
+      console.error('Reject withdrawal error:', error);
       return errorResponse(res, error.message, 400);
     }
   }
-}
+};
 
-export default new WithdrawalController();
+export default withdrawalController;
