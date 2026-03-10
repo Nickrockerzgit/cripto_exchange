@@ -37,7 +37,6 @@ async function handleReferralOnRegister(referralCode, newUserId) {
     })
 
     // 5️ Check rank upgrade
-    await checkAndUpgradeRank(updatedReferrer.id)
   } catch (error) {
     console.log(error)
     return error
@@ -47,7 +46,7 @@ async function handleReferralOnRegister(referralCode, newUserId) {
 async function checkAndUpgradeRank(userId) {
   if (!userId) return
 
-  // 1️⃣ Get user
+  // 1️ Get user
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -59,19 +58,27 @@ async function checkAndUpgradeRank(userId) {
 
   if (!user) return
 
-  // 2️⃣ Get current rank
+  // 2️ Get current rank
   const currentRank = await prisma.referralRank.findUnique({
     where: { id: user.referral_rank_id },
   })
 
   if (!currentRank) return
 
+  // 3️ Count active referrals
+  const activeReferralsCount = await prisma.referral.count({
+    where: {
+      referrer_id: userId,
+      activation_status: true
+    }
+  });
+
   // ===============================
   // 🔹 STEP 1: ASSIGN NEXT LEVEL
   // ===============================
 
   // If user completed current level requirement
-  if (user.referral_count >= currentRank.required_referrals) {
+  if (activeReferralsCount >= currentRank.required_referrals) {
     // Get next level
     const nextRank = await prisma.referralRank.findFirst({
       where: {
@@ -95,8 +102,44 @@ async function checkAndUpgradeRank(userId) {
   }
 
   // ===============================
-  // 🔹 STEP 2: REWARD LOGIC
+  //  STEP 2: REWARD LOGIC
   // ===============================
+  // Reward only when user completes THIS level requirement
+  if (activeReferralsCount >= currentRank.required_referrals) {
+    const alreadyRewarded = await prisma.referralRankHistory.findUnique({
+      where: {
+        user_id_rank_id: {
+          user_id: userId,
+          rank_id: currentRank.id,
+        },
+      },
+    })
+
+    if (!alreadyRewarded) {
+      // Reward wallet
+      await prisma.wallet.update({
+        where: { user_id: userId },
+        data: {
+          referral_balance: {
+            increment: currentRank.reward_amount,
+          },
+          total_profit: {
+            increment: currentRank.reward_amount,
+          },
+        },
+      })
+
+      // Save reward history
+      await prisma.referralRankHistory.create({
+        data: {
+          user_id: userId,
+          rank_id: currentRank.id,
+          reward_paid: currentRank.reward_amount,
+        },
+      })
+    }
+  }
+
 
   return { success: true }
 }
@@ -124,4 +167,4 @@ export const getAllUsersRefrals = async (req, res) => {
   }
 }
 
-export { handleReferralOnRegister }
+export { handleReferralOnRegister, checkAndUpgradeRank }

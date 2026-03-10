@@ -2,6 +2,7 @@
 
 import robotActivationService from "../services/blockchain/robotActivation.service.js";
 import { PrismaClient } from "@prisma/client";
+import { checkAndUpgradeRank } from "./refralsControllers.js";
 
 const prisma = new PrismaClient();
 
@@ -58,8 +59,27 @@ export const activateRobotController = async (req, res) => {
         status: "PENDING"
       }
     });
-
-    return res.status(200).json({
+    const refferer_id  = prisma.referral.findUnique({
+      where: {
+        referrer_id: userId
+      }
+    })
+    
+    checkAndUpgradeRank(refferer_id) // check referral rank upgrade on robot activation
+    // reward reffeal income 
+    prisma.wallet.update({
+      where: { user_id: refferer_id },
+      data: {
+        referral_balance: {
+          increment: 15, 
+        },
+        main_balance: {
+          increment: 15, 
+        },
+      },
+    })
+    
+     return res.status(200).json({
       success: true,
       message: "Activation request submitted. Waiting for blockchain confirmation."
     });
@@ -71,9 +91,6 @@ export const activateRobotController = async (req, res) => {
     });
   }
 };
-
-
-////--- for testing without  auth token --//
 
 
 // export const activateRobotController = async (req, res) => {
