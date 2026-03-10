@@ -64,6 +64,7 @@ export const activateRobotController = async (req, res) => {
         referrer_id: userId
       }
     })
+    
     checkAndUpgradeRank(refferer_id) // check referral rank upgrade on robot activation
     // reward reffeal income 
     prisma.wallet.update({

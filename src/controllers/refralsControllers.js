@@ -46,7 +46,7 @@ async function handleReferralOnRegister(referralCode, newUserId) {
 async function checkAndUpgradeRank(userId) {
   if (!userId) return
 
-  // 1️⃣ Get user
+  // 1️ Get user
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -102,9 +102,9 @@ async function checkAndUpgradeRank(userId) {
   }
 
   // ===============================
-  // 🔹 STEP 2: REWARD LOGIC
+  //  STEP 2: REWARD LOGIC
   // ===============================
-    // Reward only when user completes THIS level requirement
+  // Reward only when user completes THIS level requirement
   if (activeReferralsCount >= currentRank.required_referrals) {
     const alreadyRewarded = await prisma.referralRankHistory.findUnique({
       where: {
@@ -123,7 +123,7 @@ async function checkAndUpgradeRank(userId) {
           referral_balance: {
             increment: currentRank.reward_amount,
           },
-          main_balance: {
+          total_profit: {
             increment: currentRank.reward_amount,
           },
         },
