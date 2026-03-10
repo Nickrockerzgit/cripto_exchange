@@ -68,6 +68,7 @@ model Wallet {
   user_id            String   @unique
   main_balance       Decimal  @default(0.000000000000000000000000000000)
   investment_balance Decimal  @default(0.000000000000000000000000000000)
+  total_profit       Decimal  @default(0.000000000000000000000000000000)
   profit_balance     Decimal  @default(0.000000000000000000000000000000)
   referral_balance   Decimal  @default(0.000000000000000000000000000000)
   updated_at         DateTime @updatedAt
