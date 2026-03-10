@@ -222,6 +222,7 @@ async function login(req, res) {
       id: user.id,
       email: user.email,
       name: user.name,
+      robotStatus: user.robot_status, // map if needed
       accountStatus: user.status, // map if needed
       createdAt: user.created_at, // map if needed
       referralCode: user.referral_code, // map if needed
