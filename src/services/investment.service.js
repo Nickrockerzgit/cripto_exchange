@@ -122,6 +122,8 @@ class InvestmentService {
         }
 
         return newInvestment;
+      }, {
+        timeout: 10000 // 10 second timeout
       });
 
       return investment;

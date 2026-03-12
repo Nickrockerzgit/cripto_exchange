@@ -32,14 +32,10 @@ const prisma = new PrismaClient();
 // Middlewares
 // ────────────────────────────────────────────────
 
-// FIX: Explicitly including your frontend port and adding a fallback
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:8080',
-  'http://localhost:8081',
-  'https://fintech-gold-psi.vercel.app',
-  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [])
-];
+// CORS Configuration - Origins loaded from environment
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['http://localhost:5173']; // Fallback for development
 
 const corsOptions = {
   origin: function (origin, callback) {
