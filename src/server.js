@@ -32,20 +32,41 @@ const prisma = new PrismaClient();
 // Middlewares
 // ────────────────────────────────────────────────
 
-// CORS Configuration - Origins loaded from environment
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:5173']; // Fallback for development
+// CORS Configuration with AWS support
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'http://localhost:8081',
+  'http://localhost:3000',
+  'https://fintech-gold-psi.vercel.app',
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [])
+];
+
+console.log('🌐 Allowed Origins:', allowedOrigins);
+console.log('🔧 Environment:', process.env.NODE_ENV || 'development');
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
+    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
+    if (!origin) {
+      console.log('✅ CORS: Request with no origin - allowed');
+      return callback(null, true);
+    }
+    
+    // Check if origin is in allowed list
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`✅ CORS: Origin allowed - ${origin}`);
       callback(null, true);
     } else {
-      // Log for debugging which origin is failing
-      console.error(`CORS Blocked: ${origin}`);
+      // In development, allow all origins (REMOVE IN PRODUCTION IF NEEDED)
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`⚠️ CORS: Origin not in whitelist but allowed (dev mode) - ${origin}`);
+        return callback(null, true);
+      }
+      
+      // Log and block in production
+      console.error(`❌ CORS Blocked: ${origin}`);
+      console.error(`   Allowed origins:`, allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -55,7 +76,7 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// MANDATORY FIX: Use standard cors middleware for all routes including preflight
+// Use CORS middleware for all routes including preflight
 app.use(cors(corsOptions)); 
 
 app.use(express.json());
