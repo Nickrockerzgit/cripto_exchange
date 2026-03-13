@@ -26,9 +26,7 @@ export const submitDeposit = async (req, res) => {
     }
 
     // Get user's deposit address
-    const userDepositAddress = await prisma.depositAddress.findFirst({
-      where: { user_id: userId }
-    });
+    const userDepositAddress = req.body.sender_address;
 
     if (!userDepositAddress) {
       return res.status(404).json({
@@ -50,21 +48,21 @@ export const submitDeposit = async (req, res) => {
     }
 
     // ✅ Upload screenshot to S3
-    const screenshotKey = await uploadDepositScreenshot(file, userId);
-
+    // const screenshotKey = await uploadDepositScreenshot(file, userId);
+      const screenshotKey = "test-screenshot-key.jpg"; // Placeholder for testing without S3
     // ✅ Save in DB
     const submission = await prisma.depositSubmission.create({
       data: {
         user_id: userId,
         amount: parseFloat(amount),
-        deposit_address: userDepositAddress.address,
+        deposit_address: userDepositAddress,
         tx_hash,
         screenshot: screenshotKey,
         status: "PENDING",
         type: "DEPOSIT"
       }
     });
-
+   console.log(`Deposit submission created with ID: ${submission.id} for user ID: ${userId}`);
     return res.json({
       success: true,
       message: "Deposit submitted successfully. Your transaction will be verified within 5-10 minutes.",
