@@ -23,6 +23,7 @@ import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import investmentRoutes from './routes/investmentRoutes.js'
 import withdrawalRoutes from './routes/withdrawalRoutes.js'
 import transferRoutes from './routes/transferRoutes.js'
+import adminDashboardRoutes from "./routes/adminDashboard.routes.js";
 import cronJobs from './config/cronJobs.js'
 
 const app = express();
@@ -115,6 +116,7 @@ app.use('/api/transfers', transferRoutes)
 app.use("/api/admin", adminDepositRoutes);
 app.use("/api/admin", adminTransactionRoutes);
 app.use("/api/admin", adminAuthRoutes);
+app.use("/api/admin", adminDashboardRoutes);
 
 // app.use('/api/wallets', walletRoutes);
 // app.use('/api/transactions', transactionRoutes);
