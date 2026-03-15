@@ -9,7 +9,7 @@ class InvestmentController {
    */
   async createInvestment(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.userId || req.user.id;
       const { plan_id, amount } = req.body;
 
       if (!plan_id || !amount) {
@@ -40,7 +40,7 @@ class InvestmentController {
    */
   async getUserInvestments(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.userId || req.user.id;
       const { status } = req.query;
 
       const investments = await investmentService.getUserInvestments(userId, status);
@@ -62,7 +62,7 @@ class InvestmentController {
    */
   async getInvestmentById(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.userId || req.user.id;
       const { id } = req.params;
 
       const investment = await investmentService.getInvestmentById(id, userId);
@@ -84,7 +84,7 @@ class InvestmentController {
    */
   async getInvestmentSummary(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.userId || req.user.id;
 
       const summary = await investmentService.getInvestmentSummary(userId);
 
@@ -105,7 +105,7 @@ class InvestmentController {
    */
   async withdrawProfit(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.userId || req.user.id;
       const { amount } = req.body;
 
       if (!amount) {
@@ -136,7 +136,7 @@ class InvestmentController {
    */
   async withdrawPrincipal(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = req.user.userId || req.user.id;
       const { amount } = req.body;
 
       if (!amount) {

@@ -27,7 +27,11 @@ async function getReferralsByUserId(userId) {
       referralRank: false,
       referralsGiven: {
         include: {
-          referred: true,
+          referred: {
+            include: {
+              referralRankHistory: true
+            }
+          },
         },
         orderBy: { created_at: "desc" },
       },
@@ -49,10 +53,16 @@ async function getReferralsByUserId(userId) {
   const rank = ranks?.rank_name || "Level 1";
 
   // Next rank
+  const activeReferrals = await prisma.referral.count({
+    where: {
+      referrer_id: userId,
+      activation_status: true
+    }
+  });
   const nextRank = await prisma.referralRank.findFirst({
     where: {
       required_referrals: {
-        gt: totalReferred,
+        gt: activeReferrals,
       },
     },
     orderBy: {
@@ -71,13 +81,14 @@ async function getReferralsByUserId(userId) {
     rank,
     nextRankTarget,
     referralLink,
+    activeReferrals, 
     referrals: user.referralsGiven.map((ref) => ({
       id: ref.id,
       name: ref.referred.name,
       email: ref.referred.email,
       joinedDate: ref.referred.created_at,
       status: ref.activation_status ? "active" : "pending",
-      bonus: 0, // you can calculate per referral if needed
+      bonus: ref.referred.referralRankHistory.reduce((sum, h) => sum + Number(h.reward_paid), 0),
     })),
   };
 }

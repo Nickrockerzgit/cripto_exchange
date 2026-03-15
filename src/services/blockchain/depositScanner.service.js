@@ -131,7 +131,6 @@ class DepositScannerService {
           onlyConfirmed: true
         }
       );
-
       const eventList = Array.isArray(events)
         ? events
         : events?.data || [];
@@ -177,7 +176,7 @@ class DepositScannerService {
   }
 });
 
-        if (!submission) {
+        if (submission) {
           console.log("⚠ No user submission yet for:", txHash);
           continue;
         }
