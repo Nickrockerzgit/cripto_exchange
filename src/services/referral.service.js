@@ -1,8 +1,6 @@
 // src/services/referral.service.js
 import { nanoid } from 'nanoid';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../config/prisma.js';
 
 // 🔹 Create refreal
 async function createReferral(data) {

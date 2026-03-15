@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import prisma from '../config/prisma.js'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import speakeasy from 'speakeasy'
@@ -13,7 +13,6 @@ import {
 import { sendEmail } from '../services/emailService.js'
 import { handleReferralOnRegister } from '../controllers/refralsControllers.js'
 import {performance} from 'perf_hooks'
-const prisma = new PrismaClient()
 
 async function register(req, res) {
   try {
@@ -90,8 +89,19 @@ async function register(req, res) {
       userId: user.id,
     })
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Registration failed' })
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('❌ REGISTRATION ERROR');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('Error Message:', error.message);
+    console.error('Error Stack:', error.stack);
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    // Send specific error message to frontend
+    const errorMessage = error.message || 'Registration failed';
+    res.status(500).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
   }
 }
 async function verifyEmail(req, res) {
@@ -101,6 +111,7 @@ async function verifyEmail(req, res) {
   if (!user || user.email_verify_token !== otp) {
     return res.status(400).json({ error: 'Invalid OTP' })
   }
+  
   // Verify email
   await prisma.user.update({
     where: { email },
@@ -111,7 +122,37 @@ async function verifyEmail(req, res) {
     },
   })
 
-  res.json({ message: 'Email verified successfully' })
+  // Auto-login: Generate JWT tokens
+  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
+    expiresIn: '1h',
+  })
+  const refreshToken = jwt.sign(
+    { userId: user.id },
+    process.env.REFRESH_SECRET,
+    { expiresIn: '7d' },
+  )
+
+  // Save refresh token
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refresh_token: refreshToken },
+  })
+
+  // Return tokens and user info for auto-login
+  res.json({ 
+    message: 'Email verified successfully',
+    token,
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      robotStatus: user.robot_status,
+      accountStatus: user.status,
+      createdAt: user.created_at,
+      referralCode: user.referral_code,
+    },
+  })
 }
 
 async function resendOTP(req, res) {

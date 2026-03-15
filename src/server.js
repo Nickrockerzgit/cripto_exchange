@@ -4,7 +4,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import { PrismaClient } from '@prisma/client';
+import prisma from './config/prisma.js';
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js'
@@ -26,7 +26,6 @@ import transferRoutes from './routes/transferRoutes.js'
 import cronJobs from './config/cronJobs.js'
 
 const app = express();
-const prisma = new PrismaClient();
 
 // ────────────────────────────────────────────────
 // Middlewares
