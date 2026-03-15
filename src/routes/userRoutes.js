@@ -6,9 +6,9 @@ import {
   updateUser,
   deleteUser,
   getWalletBalance,
-  getTransactionHistory
+  getTransactionHistory,
+  getUserByRefralCode
 } from '../controllers/userController.js';
-import { getAllUsersRefrals } from '../controllers/refralsControllers.js';
 
 
 import authMiddleware from '../middlewares/authMiddleware.js';
@@ -24,6 +24,9 @@ router.get('/', getAllUsers);
 
 // 🔹 Get single user
 router.get('/:id', getUserById);
+router.get('/referral/:referral_code', getUserByRefralCode);
+
+
 
 // 🔹 Update user
 router.put('/:id', authMiddleware, updateUser);
