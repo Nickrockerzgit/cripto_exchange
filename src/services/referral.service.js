@@ -25,6 +25,7 @@ async function getReferralsByUserId(userId) {
     include: {
       wallets: true,
       referralRank: false,
+      referralRankHistory: true,
       referralsGiven: {
         include: {
           referred: {
@@ -44,7 +45,10 @@ async function getReferralsByUserId(userId) {
   const totalReferred = user.referralsGiven.length;
 
   // Total bonus
-  const totalBonus = Number ( user.wallets[0]?.referral_balance || 0);
+  const totalBonus =  user.referralRankHistory.reduce(
+  (sum, h) => sum + Number(h.reward_paid),
+  0
+);
   
   // Current rank
   const ranks = await prisma.referralRank.findUnique({
@@ -88,7 +92,7 @@ async function getReferralsByUserId(userId) {
       email: ref.referred.email,
       joinedDate: ref.referred.created_at,
       status: ref.activation_status ? "active" : "pending",
-      bonus: ref.referred.referralRankHistory.reduce((sum, h) => sum + Number(h.reward_paid), 0),
+      bonus:0
     })),
   };
 }
