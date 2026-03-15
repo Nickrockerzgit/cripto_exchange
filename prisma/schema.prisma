@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Admin {
-  id             String   @id
+  id             String   @id @default(uuid())
   name           String?
   email          String?  @unique
   password_hash  String?
@@ -19,7 +19,7 @@ model Admin {
 }
 
 model BlockchainDeposit {
-  id            String  @id
+  id            String  @id @default(uuid())
   tx_hash       String  @unique
   from_addr     String
   to_addr       String
@@ -29,7 +29,7 @@ model BlockchainDeposit {
 }
 
 model Deposit {
-  id              String   @id
+  id              String   @id @default(uuid())
   user_id         String
   amount          Decimal
   platform_fee    Decimal?
@@ -44,7 +44,7 @@ model Deposit {
 }
 
 model DepositAddress {
-  id         String   @id
+  id         String   @id @default(uuid())
   user_id    String   @unique
   address    String   @unique
   index_no   Int
@@ -53,7 +53,7 @@ model DepositAddress {
 }
 
 model DepositSubmission {
-  id              String   @id
+  id              String   @id @default(uuid())
   user_id         String
   amount          Decimal
   type            String   @default("DEPOSIT")
@@ -68,7 +68,7 @@ model DepositSubmission {
 }
 
 model InternalTransfer {
-  id                                      String   @id
+  id                                      String   @id @default(uuid())
   sender_id                               String
   receiver_id                             String
   amount                                  Decimal
@@ -83,7 +83,7 @@ model InternalTransfer {
 }
 
 model Investment {
-  id                    String         @id
+  id                    String         @id @default(uuid())
   user_id               String
   plan_id               String
   amount                Decimal
@@ -100,7 +100,7 @@ model Investment {
 }
 
 model InvestmentPlan {
-  id           String       @id
+  id           String       @id @default(uuid())
   name         String       @unique
   min_amount   Decimal
   max_amount   Decimal?
@@ -111,7 +111,7 @@ model InvestmentPlan {
 }
 
 model InvestmentRank {
-  id                  String     @id
+  id                  String     @id @default(uuid())
   rank_name           String     @unique
   required_investment Decimal
   created_at          DateTime   @default(now())
@@ -119,7 +119,7 @@ model InvestmentRank {
 }
 
 model Referral {
-  id                                   String   @id
+  id                                   String   @id @default(uuid())
   referrer_id                          String
   referred_user_id                     String   @unique
   activation_status                    Boolean  @default(false)
@@ -132,7 +132,7 @@ model Referral {
 }
 
 model ReferralRank {
-  id                  String                @id
+  id                  String                @id @default(uuid())
   rank_name           String                @unique
   required_referrals  Int
   reward_amount       Decimal
@@ -141,7 +141,7 @@ model ReferralRank {
 }
 
 model ReferralRankHistory {
-  id           String       @id
+  id           String       @id @default(uuid())
   user_id      String
   rank_id      String
   reward_paid  Decimal
@@ -154,13 +154,13 @@ model ReferralRankHistory {
 }
 
 model Role {
-  id        String     @id
+  id        String     @id @default(uuid())
   role_name String     @unique
   UserRole  UserRole[]
 }
 
 model Transaction {
-  id                 String   @id
+  id                 String   @id @default(uuid())
   user_id            String
   type               String?
   source_wallet      String?
@@ -179,7 +179,7 @@ model Transaction {
 }
 
 model User {
-  id                                                  String                @id
+  id                                                  String                @id @default(uuid())
   name                                                String?
   email                                               String?               @unique
   phone                                               String?
@@ -220,7 +220,7 @@ model User {
 }
 
 model UserRank {
-  id             String         @id
+  id             String         @id @default(uuid())
   user_id        String
   rank_id        String
   assigned_at    DateTime       @default(now())
@@ -232,7 +232,7 @@ model UserRank {
 }
 
 model UserRole {
-  id      String @id
+  id      String @id @default(uuid())
   user_id String
   role_id String
   Role    Role   @relation(fields: [role_id], references: [id])
@@ -243,13 +243,13 @@ model UserRole {
 }
 
 model Wallet {
-  id                 String   @id
+  id                 String   @id @default(uuid())
   user_id            String   @unique
   main_balance       Decimal  @default(0.000000000000000000000000000000)
   investment_balance Decimal  @default(0.000000000000000000000000000000)
   profit_balance     Decimal  @default(0.000000000000000000000000000000)
   referral_balance   Decimal  @default(0.000000000000000000000000000000)
-  updated_at         DateTime
+  updated_at         DateTime @updatedAt
   total_profit       Decimal  @default(0.000000000000000000000000000000)
   User               User     @relation(fields: [user_id], references: [id])
 
@@ -257,7 +257,7 @@ model Wallet {
 }
 
 model Withdrawal {
-  id                 String    @id
+  id                 String    @id @default(uuid())
   user_id            String
   type               String?
   requested_amount   Decimal
