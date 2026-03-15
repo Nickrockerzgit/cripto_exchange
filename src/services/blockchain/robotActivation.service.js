@@ -9,7 +9,32 @@ class RobotActivationService {
   async process() {
 
     console.log("🤖 Processing robot activation requests...");
+ 
+      const expiredUsers = await prisma.user.findMany({
+    where: {
+      robot_status: "ACTIVE",
+      isExpired: false,
+      robot_activation_timestamp: {
+        lte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)  // 365 days ago
+      }
+    },
+    select: { id: true }
+  });
 
+  if (expiredUsers.length > 0) {
+    await prisma.user.updateMany({
+      where: {
+        id: { in: expiredUsers.map(u => u.id) }
+      },
+      data: {
+        robot_status: "INACTIVE",
+        isExpired: true,
+      }
+    });
+    console.log(`⏰ Expired ${expiredUsers.length} robot(s) past 365 days`);
+  }
+
+  
     const pendingRequests = await prisma.depositSubmission.findMany({
       where: {
         status: "PENDING",
@@ -37,7 +62,11 @@ class RobotActivationService {
 
       await tx.user.update({
         where: { id: submission.user_id },
-        data: { robot_status: "ACTIVE" }
+        data: { 
+          robot_status: "ACTIVE",
+          robot_activation_timestamp: new Date(),   // ADD THIS
+          isExpired: false,
+         }
       });
 
       await tx.depositSubmission.update({

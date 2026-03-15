@@ -74,6 +74,51 @@ export const activateRobotController = async (req, res) => {
   }
 }
 
+export const getRobotStatusController = async (req, res) => {
+  try {
+    const userId = req.user.userId
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        robot_status: true,
+        robot_activation_timestamp: true,
+        isExpired: true,
+      }
+    })
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      })
+    }
+
+    let expiryDate = null
+    if (user.robot_activation_timestamp) {
+      const activationDate = new Date(user.robot_activation_timestamp)
+      expiryDate = new Date(activationDate)
+      expiryDate.setDate(expiryDate.getDate() + 365)
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        robot_status: user.robot_status,
+        isExpired: user.isExpired,
+        activation_timestamp: user.robot_activation_timestamp,
+        expiry_date: expiryDate,
+      }
+    })
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    })
+  }
+}
+
 // export const activateRobotController = async (req, res) => {
 //   try {
 //     const { user_id, tx_hash, deposit_address } = req.body;
