@@ -50,6 +50,19 @@ export const getUserById = async (req, res) => {
   }
 };
 
+export const getUserByRefralCode = async (req, res) => {
+  try {
+    const { referral_code } = req.params;
+    if (!referral_code) return errorResponse(res, "Referral code required", 400);
+
+    const user = await userService.getUserByRefralCode(referral_code);
+    if (!user) return successResponse(res, "No user found with this referral code", 404);
+    return successResponse(res, "User fetched successfully", user);
+  } catch (error) {
+    console.error("Get User by Referral Code Error:", error);
+    return errorResponse(res, "Failed to fetch user");
+  }
+}
 
 // 🔹 Update User
 export const updateUser = async (req, res) => {

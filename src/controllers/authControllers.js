@@ -25,7 +25,7 @@ async function register(req, res) {
     console.log('   Name:', name);
     console.log('   Email:', email);
     console.log('   Phone:', phone);
-    const referralCodeFromParam = req.query.ref
+    const referralCodeFromParam = req.query.ref || req.body.referralCode;
     console.log('   Referral Code:', referralCodeFromParam || 'None');
     console.log('='.repeat(60));
 
@@ -67,8 +67,10 @@ async function register(req, res) {
     ]);
 
     // 5. Handle Referral via Service
-    handleReferralOnRegister(referralCodeFromParam, user.id)
-    
+    if (referralCodeFromParam) {
+      handleReferralOnRegister(referralCodeFromParam, user.id);
+    }
+
     // 6. Send email with OTP
     console.log(`📧 Preparing to send OTP email to: ${email}`);
     const html = emailVerificationTemplate(otp)
