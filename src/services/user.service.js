@@ -17,6 +17,13 @@ const publicUserSelect = {
   referral_code:true
 };
 
+const basicUserSelect = {
+  name: true,
+  email: true,
+  phone: true,  
+  status: true,
+  referral_code:true
+};
 // 🔹 Create User
 async function createUser(data) {
   return await prisma.user.create({
@@ -40,6 +47,13 @@ async function getUserById(id) {
   return await prisma.user.findUnique({
     where: { id },
     select: publicUserSelect
+  });
+}
+
+async function getUserByRefralCode(referral_code) {
+  return await prisma.user.findUnique({
+    where: { referral_code },
+    select: basicUserSelect
   });
 }
 
@@ -67,5 +81,6 @@ export {
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  getUserByRefralCode
 };
